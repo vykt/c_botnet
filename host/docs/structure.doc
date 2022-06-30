@@ -1,0 +1,10 @@
+main.c
+	|
+	 - fibonacci.c
+	| 		> Calculate given number.
+	|
+	|
+	 - network.c
+	 		> Try to stablish connection to master.
+				\If successful, listen for number.
+				\If unsuccessful, retry in 1 minute.

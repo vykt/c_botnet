@@ -1,12 +1,11 @@
 #include <stdio.h>
+#include <stdint.h>
 
 #include "fibonacci.h"
+#include "network.h"
 
 int main() {
 
-	int x;
-	x = fibonacci(3);
-	printf("%d\n");
+	struct init_data
 
-	return 0;
 }
