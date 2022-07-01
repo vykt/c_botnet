@@ -1,19 +1,32 @@
+#include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
+#include <errono.h>
 
 #include <sys/socket.h>
-#include <netinet/in.h>
+#include <netinet/udp.h>
+#include <netinet/ip.h>
 #include <arpa/inet.h>
 
 #include "network.h"
 #include "fibonacci.h"
+#include "error.h"
 
 //TODO DEBUG INCLUDES, REMOVE
 #include <stdio.h>
 
 
 // Build socket & address.
-int build_conn(struct conn_data * master_conn, struct init_data * master_init) {
+int build_conn() {
 
+	//This generates the IP header automatically, leaves program to define UDP header.
+	master_conn->sock = socket(AF_INET6, SOCK_RAW, IPPROTO_UDP);
+
+
+
+
+// OLD CODE
+/*
 	// Building socket for connection to master.
 	master_conn->sock = socket(AF_INET6, SOCK_STREAM, 0);
 
@@ -24,6 +37,7 @@ int build_conn(struct conn_data * master_conn, struct init_data * master_init) {
 
 	close(master_conn->sock);
 
+*/
 	return 0;
 }
 

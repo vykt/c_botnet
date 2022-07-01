@@ -1,26 +1,28 @@
 #ifndef NETWORK_H
 #define NETWORK_H
 
+#include <stdint.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+/*
+ *	Raw sockets make me want to kms
+ *
+ */
 
-struct init_data {
-
-	u_short port;
-	char ip[40];
-
-};
-
+//Conn struct, written by build_conn()
 struct conn_data {
 
 	int sock;
-	struct sockaddr_in6 addr6;
+	struct sockaddr_in addr;
 
-};
+}
 
 
-int build_conn(struct conn_data * master_conn, struct init_data * master_init);
+
+
+
+int build_conn();
 int try_connect();
 
 
