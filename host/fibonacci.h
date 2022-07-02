@@ -7,6 +7,6 @@
 
 #include <stdint.h>
 
-int fibonacci_calc(uint64_t target);
+uint16_t fibonacci_calc(uint16_t target);
 
 #endif
