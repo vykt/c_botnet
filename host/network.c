@@ -46,7 +46,7 @@ int build_conn(struct conn_data * written_data, struct pass_data * passed_data) 
 	//Write header
 	printf("creating header...\n");
 	written_data->udp_header = (struct udphdr *) written_data->packet;
-	written_data->udp_header->source = htons(PORT);
+	written_data->udp_header->source = htons(passed_data->port);
 	written_data->udp_header->dest = htons(PORT);
 	written_data->udp_header->len = htons(sizeof(struct udphdr));
 

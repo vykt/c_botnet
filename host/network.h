@@ -25,6 +25,7 @@ struct conn_data {
 struct pass_data {
 
 	char ip[16];
+	int port;
 };
 
 struct recv_data {

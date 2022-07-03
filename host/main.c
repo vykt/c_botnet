@@ -1,7 +1,9 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <stdint.h>
 #include <string.h>
+#include <time.h>
 #include <sys/types.h>
 #include <sys/time.h>
 
@@ -13,8 +15,13 @@
 int main() {
 
 	//Initialise data
+	
+	srand(time(0));
+	
 	struct pass_data pass_data_host;
 	strcpy(pass_data_host.ip, "172.20.10.10");
+	//This creates a port number in the dynamic/private range (49152 to 65535)
+	pass_data_host.port = (rand() % 16384) + 49152;
 
 	struct conn_data conn_data_host;
 	struct recv_data recv_data_host;
@@ -54,5 +61,4 @@ int main() {
 	}
 
 	close(conn_data_host.sock);
-
 }
