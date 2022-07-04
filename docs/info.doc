@@ -1,0 +1,27 @@
+Host: 		port in dynamic/private range
+Dispatcher: port 80
+
+
+host:
+
+	on boot:	
+				-start ping every 4-5 seconds
+
+	on get:
+				-ignore any following identical gets
+				-validate number, pass to fibonacci sequence
+				-send fibonacci output 3 times to master
+
+
+master:
+
+	on boot:	
+				-listen for ping
+				-if ping within last 15 seconds, try send job
+				-wait for ack, ignore identical acks
+					>if no ack, send to another host if possible.
+
+
+	on input get:	send info, wait for ack. if no ack, resend.
+
+
