@@ -14,8 +14,8 @@ void queue_init(struct queue * q) {
 //0 - success, -1 - fail
 int queue_push(struct queue * q, uint16_t val) {
 
-	p_end = q->end_index;
-	p_str = q_start_index;
+	int p_end = q->end_index;
+	int p_str = q->start_index;
 	//if queue is full
 	if (p_end == p_str) {
 		return -1;
@@ -37,12 +37,12 @@ uint16_t queue_pop(struct queue * q) {
 
 	uint16_t ret;
 
-	if (q->content[start_index] == 0) {
+	if (q->content[q->start_index] == 0) {
 		return -1;
 	} else {
 
-		ret = q->content[start_index];
-		q->content[start_index] = 0;
+		ret = q->content[q->start_index];
+		q->content[q->start_index] = 0;
 		q->start_index = q->start_index + 1;
 		if (q->start_index == QUEUE_SIZE) q->start_index = 0;
 		return ret;
@@ -51,7 +51,7 @@ uint16_t queue_pop(struct queue * q) {
 
 //0 = empty, 1 = not empty
 int queue_not_empty(struct queue * q) {
-	if (q->content[start_index] == 0) {
+	if (q->content[q->start_index] == 0) {
 		return 1;
 	} else {
 		return 0;

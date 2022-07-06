@@ -43,6 +43,7 @@ struct recv_data {
 	char packet_recv[DATAGRAM_SIZE];
 	char * packet_recv_body; //stores body
 	struct udphdr * udp_header; //struct version, points to same thing.
+	struct sockaddr_in addr;
 
 };
 
@@ -50,12 +51,12 @@ struct recv_data {
 void build_sock(int * sock);
 void build_send(struct send_data * send_data_srct);
 void update_send(struct send_data * send_data_srct, struct host_data * host_data_srct,
-				 int num_to_check);
+				 uint16_t num_to_check);
 void build_recv(struct recv_data * recv_data_srct);
 
 int try_send(struct send_data * send_data_srct, struct host_data * host_data_srct,
-			 int num_to_check);
-int try_recv(struct recv_data * recv_data_srct, struct sockaddr_in * addr);
+			 int * sock, uint16_t num_to_check);
+int try_recv(struct recv_data * recv_data_srct, int * sock);
 
 void set_ack_time(struct host_data * host);
 int check_outdated_ack_time(struct host_data * host, struct timeval * time);

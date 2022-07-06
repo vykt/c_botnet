@@ -21,13 +21,13 @@
 void build_sock(int * sock) {
 
 	*sock = socket(AF_INET, SOCK_RAW, IPPROTO_UDP);
-	if (written_data->sock == -1) {
+	if (*sock == -1) {
 		handle_err(ERROR_SOCKET_OPEN);
 	}
 
 	//Set socket not to block to send and recv simultaneously.
-	int temp = fcntl(*recv_data_srct->sock, F_SETFL, fcntl(
-					 *recv_data_srct->sock, F_GETFL, 0) | O_NONBLOCK);
+	int temp = fcntl(*sock, F_SETFL, fcntl(
+					 *sock, F_GETFL, 0) | O_NONBLOCK);
 	if (temp == -1) handle_err(ERROR_SOCKET_NONBLOCK);
 
 }
@@ -37,8 +37,8 @@ void build_sock(int * sock) {
 void build_send(struct send_data * send_data_srct) {
 
 	//Write packet
-	send_data_srct->packet_body = 
-		(char *) (send_data_srct->packet + sizeof(struct udphdr));
+	send_data_srct->packet_send_body = 
+		(char *) (send_data_srct->packet_send + sizeof(struct udphdr));
 	send_data_srct->udp_header = (struct udphdr *)
 									(send_data_srct->packet_send
 									+ sizeof (struct iphdr));
@@ -51,17 +51,19 @@ void build_send(struct send_data * send_data_srct) {
 
 //Update sending packet. 'num' 0 sends ack instead.
 void update_send(struct send_data * send_data_srct, struct host_data * host_data_srct,
-				 int num_to_check) {
-
+				 uint16_t num_to_check) {
+	int content_index;
+	if (num_to_check > 0) {content_index = 1;} else {content_index = 0;}
 	char * body_content[2] = {
 		"<!DOCTYPE html>\n<header>\n</header>\n<body>\n<h1>Error 404</h1>\n</body>",
 		"<!DOCTYPE html>\n<header>\n</header>\n<body>\n<h1>Error 403</h1>\n</body>"
 	};
 
 	//Fill body.
-	send_data_srct->udp_header->dest = host_data_srct->addr->sin_port;
-	memset(send_data_srct->packet, 0, sizeof(send_data_srct->packet));
-	strncpy(send_data_srct->packet_body, body_content[ack], strlen(body_content[ack]));
+	send_data_srct->udp_header->dest = host_data_srct->addr.sin_port;
+	memset(send_data_srct->packet_send, 0, sizeof(send_data_srct->packet_send));
+	strncpy(send_data_srct->packet_send_body, body_content[content_index],
+			strlen(body_content[content_index]));
 
 	//Set ack or number to check. 0 = ack.
 	send_data_srct->udp_header->check = num_to_check;
@@ -73,6 +75,7 @@ void update_send(struct send_data * send_data_srct, struct host_data * host_data
 void build_recv(struct recv_data * recv_data_srct) {
 
 	memset(recv_data_srct->packet_recv, 0, DATAGRAM_SIZE);
+	memset(&recv_data_srct->addr, 0, sizeof(struct sockaddr_in));
 	recv_data_srct->packet_recv_body = (char *) (recv_data_srct->packet_recv
 									 + sizeof(struct iphdr)
 									 + sizeof(struct udphdr));
@@ -84,14 +87,14 @@ void build_recv(struct recv_data * recv_data_srct) {
 
 // Send number for fibonacci sequence.
 int try_send(struct send_data * send_data_srct, struct host_data * host_data_srct, 
-			 int num_to_check) {
+			 int * sock, uint16_t num_to_check) {
 
-	send_data_srct->udp_header->dest = htons(host_data_srct->addr->dest);
+	send_data_srct->udp_header->dest = htons(host_data_srct->addr.sin_port);
 	send_data_srct->udp_header->check = num_to_check;
 
-	ssize_t sent = sendto(send_data_srct->sock, 
-						  send_data_srct->packet,
-						  (sizeof(struct udphdr)+strlen(send_data_srct->packet_body)+1),
+	ssize_t sent = sendto(*sock, 
+						  send_data_srct->packet_send,
+						  (sizeof(struct udphdr)+strlen(send_data_srct->packet_send_body)+1),
 						  0,
 						  (struct sockaddr *) &host_data_srct->addr,
 						  sizeof(struct sockaddr_in));
@@ -100,16 +103,16 @@ int try_send(struct send_data * send_data_srct, struct host_data * host_data_src
 
 
 // Recv data via UDP.
-int try_recv(struct recv_data * recv_data_srct, struct sockaddr_in * addr) {
+int try_recv(struct recv_data * recv_data_srct, int * sock) {
 
 	socklen_t len;
 
-	ssize_t recved = recvfrom(*recv_data_srct->sock,
+	ssize_t recved = recvfrom(*sock,
 			recv_data_srct->packet_recv,
 			(sizeof(struct iphdr)+sizeof(struct udphdr)
 			+ strlen(recv_data_srct->packet_recv_body) + 1),
 			0,
-			addr,
+			&recv_data_srct->addr,
 			&len);
 
 	return recved;
@@ -120,7 +123,7 @@ int try_recv(struct recv_data * recv_data_srct, struct sockaddr_in * addr) {
 // Update ack time
 void set_ack_time(struct host_data * host) {
 
-	if (gettimeofday(&host->ack_time) != 0) handle_err(ERROR_TIME_GETTIME);
+	if (gettimeofday(&host->ack_time, NULL) != 0) handle_err(ERROR_TIME_GETTIME);
 
 }
 
@@ -128,7 +131,7 @@ void set_ack_time(struct host_data * host) {
 /*
  * The program assumes UDP packets wont be dropped n number of times in a row,
  * in the current use case, 3 times in a row. If they are, the program assumes
- * host has lost connection. Connection is immediately reistablished however
+ * host has lost connection. Connection is immediately deemed reistablished however
  * once another ping arrives.
  */
 
@@ -161,5 +164,5 @@ int api_get_input() {
 int api_send_output(uint16_t in_fibonacci) {
 
 	//Dummy
-	return 0	
+	return 0;
 }
