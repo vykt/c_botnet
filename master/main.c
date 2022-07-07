@@ -5,7 +5,6 @@
 #include <sys/types.h>
 #include <sys/time.h>
 
-#include "fibonacci.h"
 #include "network.h"
 #include "error.h"
 #include "queue.h"
@@ -70,6 +69,7 @@ int main() {
 				if (hosts[i].state != 1) continue; //if unavailable, skip
 				//Send to first available host
 				num_buf = queue_pop(&jobs);
+				update_send(&send_data_srct, &hosts[i], num_buf);
 				try_send(&send_data_srct, &hosts[i], &sock, num_buf);
 				hosts[i].state = 2; //working
 			}

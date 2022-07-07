@@ -1,7 +1,6 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
-#include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <sys/types.h>
@@ -9,56 +8,60 @@
 
 #include "fibonacci.h"
 #include "network.h"
+#include "error.h"
 #include "manager.h"
 
 
 int main() {
 
-	//Initialise data
-	
-	srand(time(0));
-	
-	struct pass_data pass_data_host;
-	strcpy(pass_data_host.ip, "172.20.10.10");
-	//This creates a port number in the dynamic/private range (49152 to 65535)
-	pass_data_host.port = (rand() % 16384) + 49152;
-
-	struct conn_data conn_data_host;
-	struct recv_data recv_data_host;
-
-	struct timeval tv_last;
-	check_send(&tv_last, CHECK_INIT_TRUE);
-	
+	int sock;
+	ssize_t recv;
 	int tms_check;
 	uint16_t num_check;
-	ssize_t recv;
+	struct send_data send_data_srct;
+	struct recv_data recv_data_srct;
+	struct master_data master_data_srct;
+	struct timeval tv_last;
 
+	srand(time(0));
 
-	//Building data
-	build_conn(&conn_data_host, &pass_data_host);
-	build_recv(&recv_data_host, &conn_data_host);
+	strcpy(master_data_srct.ip, "192.168.0.10"); //TODO temp, change
+	//Generate port in the dynamic/private range. If 2 clients happen to
+	//have clashing ports there will be a problem.
+	master_data_srct.port = (rand() % 16384) + 49152;
+
+	build_sock(&sock);
+	build_send(&send_data_srct, &master_data_srct);
+	build_recv(&recv_data_srct);
+	check_send(&tv_last, CHECK_INIT_TRUE);
 
 
 	//Main loop
-	while(1) {
+	while (1) {
 
 		tms_check = check_send(&tv_last, CHECK_INIT_FALSE);
-		
-		recv = try_recv(&recv_data_host);
-		//if recv received some udp packet
+		recv = try_recv(&recv_data_srct, &sock);
+
+		//If recv received some udp packet
 		if (recv > 0) {
-			num_check = recv_data_host.packet_recv_check->check;
+			num_check = recv_data_srct.udp_header->check;
 			num_check = fibonacci_calc(num_check);
-			conn_data_host.udp_header->check = (uint16_t) num_check;
-		} else {
-			conn_data_host.udp_header->check = 2;
+			update_send(&send_data_srct, num_check);
+			try_send(&send_data_srct, &sock);
+			if (gettimeofday(&tv_last, NULL) == -1) handle_err(ERROR_TIME_GETTIME);
 		}
 
-		//If its time to send packet
+		//Check if ping time.
 		if (tms_check == 1) {
-			try_send(&conn_data_host);
+			update_send(&send_data_srct, 0);
+			try_send(&send_data_srct, &sock);
 		}
-	}
+	
+	} //End main loop
 
-	close(conn_data_host.sock);
+	close(sock);
+
 }
+	
+
+

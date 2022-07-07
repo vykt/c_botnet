@@ -3,46 +3,57 @@
 
 #include <stdint.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <netinet/udp.h>
 #include <netinet/ip.h>
 
 #define PORT 80
-
 #define DATAGRAM_SIZE 1024
+#define MAX_HOST 128
+#define HOST_DISCONNECT_TIMER 15 //seconds
+
+#define HOST_STATE_DISCONNECTED 0
+#define HOST_STATE_PINGING 1
+#define HOST_STATE_WORK_SENT 2
+
+/*
+ *	'send_data' & 'recv_data' are identical structs. Throughout development
+ *	this has not been the case the majority of the time. In the future,
+ *	they can be combined into a single struct.
+ */
 
 
-//Conn struct, written by build_conn()
-struct conn_data {
+//Conn struct, written by build_conn().
+struct send_data {
 
-	int sock;
-	char packet[DATAGRAM_SIZE];
-	char * packet_body;
-	struct sockaddr_in src_addr;
-	struct sockaddr_in dst_addr;
+	char packet_send[DATAGRAM_SIZE];
+	char * packet_send_body;
 	struct udphdr * udp_header;
 };
 
-struct pass_data {
+struct master_data { //TODO 'host_data' previously
 
+	struct sockaddr_in addr;
 	char ip[16];
 	int port;
 };
 
 struct recv_data {
 
-	int * sock;
 	char packet_recv[DATAGRAM_SIZE];
-	char * packet_recv_body;
-	struct udphdr * packet_recv_check; //stores number received
+	char * packet_recv_body; //stores body
+	struct udphdr * udp_header; //struct version, points to same thing.
 	struct sockaddr_in addr;
 
 };
 
 
-int build_conn(struct conn_data * written_data, struct pass_data * passed_data);
-int build_recv(struct recv_data * written_recv_data, struct conn_data * written_data);
+void build_sock(int * sock);
+void build_send(struct send_data * send_data_srct, struct master_data * master_data_srct);
+void update_send(struct send_data * send_data_srct, uint16_t num);
+void build_recv(struct recv_data * recv_data_srct);
 
-int try_send(struct conn_data * conn_data_srct);
-int try_recv(struct recv_data * recv_data_srct);
+int try_send(struct send_data * send_data_srct, int * sock);
+int try_recv(struct recv_data * recv_data_srct, int * sock);
 
 #endif

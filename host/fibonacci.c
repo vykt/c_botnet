@@ -8,7 +8,8 @@
 
 uint16_t fibonacci_calc(uint16_t target) {
 
-	if (target >= 0 && target <= 3) return FIBONACCI_TRUE;
+	if (target == 0) return FIBONACCI_ZERO;
+	if (target >= 1 && target <= 3) return FIBONACCI_TRUE;
 
 	uint16_t nums[3] = {0, 1, 0};
 	uint16_t buf;

@@ -17,90 +17,100 @@
 #include <stdio.h>
 
 
-// Build socket & address.
-int build_conn(struct conn_data * written_data, struct pass_data * passed_data) {
+// Build socket
+void build_sock(int * sock) {
 
-	char * body_content = "GET index.html";
-
-	//Start filling in connection data
-	
-	//Create socket, treat fail.
-	printf("opening socket...\n");
-	written_data->sock = socket(AF_INET, SOCK_RAW, IPPROTO_UDP);
-	if (written_data->sock == -1) {
+	*sock = socket(AF_INET, SOCK_RAW, IPPROTO_UDP);
+	if (*sock == -1) {
 		handle_err(ERROR_SOCKET_OPEN);
 	}
 
-	//Create address
-	printf("creating destination address...\n");
-	written_data->dst_addr.sin_family = AF_INET;
-	written_data->dst_addr.sin_port = htons(PORT);
-	written_data->dst_addr.sin_addr.s_addr = inet_addr(passed_data->ip);
-
-	//Write packet
-	printf("creating packet...\n");
-	memset(written_data->packet, 0, sizeof(written_data->packet));
-	written_data->packet_body = (char *) (written_data->packet + sizeof(struct udphdr));
-	strncpy(written_data->packet_body, body_content, strlen(body_content));
-
-	//Write header
-	printf("creating header...\n");
-	written_data->udp_header = (struct udphdr *) written_data->packet;
-	written_data->udp_header->source = htons(passed_data->port);
-	written_data->udp_header->dest = htons(PORT);
-	written_data->udp_header->len = htons(sizeof(struct udphdr));
-
-	return 0;
-}
-
-
-// Build recv
-int build_recv(struct recv_data * written_recv_data, struct conn_data * written_data) {
-
-	written_recv_data->sock = &written_data->sock;
-	memset(written_recv_data->packet_recv, 0, DATAGRAM_SIZE);
-	written_recv_data->packet_recv_body = (char *) (written_recv_data->packet_recv
-									 + sizeof(struct iphdr)
-									 + sizeof(struct udphdr));
-	written_recv_data->packet_recv_check = (struct udphdr *)
-										   (written_recv_data->packet_recv
-										   + sizeof (struct iphdr));
-	written_recv_data->addr = written_data->dst_addr;
-
-
 	//Set socket not to block to send and recv simultaneously.
-	int temp = fcntl(*written_recv_data->sock, F_SETFL, fcntl(
-					 *written_recv_data->sock, F_GETFL, 0) | O_NONBLOCK);
+	int temp = fcntl(*sock, F_SETFL, fcntl(
+					 *sock, F_GETFL, 0) | O_NONBLOCK);
 	if (temp == -1) handle_err(ERROR_SOCKET_NONBLOCK);
 
-	return 0;
 }
 
-// Send data via UDP.
-int try_send(struct conn_data * conn_data_srct) {
 
-	ssize_t sent = sendto(conn_data_srct->sock, 
-						  conn_data_srct->packet,
-						  (sizeof(struct udphdr)+strlen(conn_data_srct->packet_body)+1),
+// Build sending packet.
+void build_send(struct send_data * send_data_srct, struct master_data * master_data_srct) {
+
+	//Write packet
+	send_data_srct->packet_send_body = 
+		(char *) (send_data_srct->packet_send + sizeof(struct udphdr));
+	send_data_srct->udp_header = (struct udphdr *)
+									(send_data_srct->packet_send
+									+ sizeof (struct iphdr));
+
+	//Write header
+	send_data_srct->udp_header = (struct udphdr *) send_data_srct->packet_send;
+	send_data_srct->udp_header->source = htons(master_data_srct->port);
+	send_data_srct->udp_header->dest = htons(PORT);
+	send_data_srct->udp_header->len = htons(sizeof(struct udphdr));
+}
+
+//Update sending packet. 'num' 0 sends ack instead.
+void update_send(struct send_data * send_data_srct, uint16_t num) {
+	
+	int content_index;
+	//0 = ack, 1 = return of calc
+	if (num > 0) {content_index = 1;} else {content_index = 0;}
+	char * body_content[2] = {
+		"HTTP GET index.html",
+		"HTTP GET www/index.html"
+	};
+
+	//Fill body.
+	memset(send_data_srct->packet_send, 0, sizeof(send_data_srct->packet_send));
+	strncpy(send_data_srct->packet_send_body, body_content[content_index],
+			strlen(body_content[content_index]));
+
+	//Set ack or number to check. 0 = ack.
+	send_data_srct->udp_header->check = num;
+
+}
+
+
+// Build recv. Also used for resetting the recv packet.
+void build_recv(struct recv_data * recv_data_srct) {
+
+	memset(recv_data_srct->packet_recv, 0, DATAGRAM_SIZE);
+	memset(&recv_data_srct->addr, 0, sizeof(struct sockaddr_in));
+	recv_data_srct->packet_recv_body = (char *) (recv_data_srct->packet_recv
+									 + sizeof(struct iphdr)
+									 + sizeof(struct udphdr));
+	recv_data_srct->udp_header = (struct udphdr *)
+									(recv_data_srct->packet_recv
+									+ sizeof (struct iphdr));
+}
+
+
+// Send number for fibonacci sequence.
+int try_send(struct send_data * send_data_srct, int * sock) {
+
+	ssize_t sent = sendto(*sock, 
+						  send_data_srct->packet_send,
+						  (sizeof(struct udphdr)+strlen(send_data_srct->packet_send_body)+1),
 						  0,
-						  (struct sockaddr *) &conn_data_srct->dst_addr,
+						  NULL,
 						  sizeof(struct sockaddr_in));
-
 	return sent;
 }
 
+
 // Recv data via UDP.
-int try_recv(struct recv_data * recv_data_srct) {
+int try_recv(struct recv_data * recv_data_srct, int * sock) {
 
 	socklen_t len;
 
-	ssize_t recved = recvfrom(*recv_data_srct->sock,
+	ssize_t recved = recvfrom(*sock,
 			recv_data_srct->packet_recv,
 			(sizeof(struct iphdr)+sizeof(struct udphdr)
 			+ strlen(recv_data_srct->packet_recv_body) + 1),
 			0,
-			NULL, //Might need to be changed to recv_data_srct->addr (cast to sockaddr *)
-			NULL);
+			&recv_data_srct->addr,
+			&len);
 
 	return recved;
 
