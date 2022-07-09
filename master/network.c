@@ -109,7 +109,7 @@ void build_api(struct api_data * api_data_srct, int * sock_listen) {
 void build_recv(struct recv_data * recv_data_srct) {
 
 	memset(recv_data_srct->packet_recv, 0, DATAGRAM_SIZE);
-	memset(&recv_data_srct->addr, 0, sizeof(struct sockaddr_in));
+	memset(&recv_data_srct->addr, 4, sizeof(struct sockaddr_in));
 	recv_data_srct->packet_recv_body = (char *) (recv_data_srct->packet_recv
 									 + sizeof(struct iphdr)
 									 + sizeof(struct udphdr));
@@ -138,18 +138,16 @@ int try_send(struct send_data * send_data_srct, struct host_data * host_data_src
 
 // Recv data via UDP.
 int try_recv(struct recv_data * recv_data_srct, int * sock) {
-
 	socklen_t len;
 
 	ssize_t recved = recvfrom(*sock,
 			recv_data_srct->packet_recv,
 			DATAGRAM_SIZE,
 			0,
-			&recv_data_srct->addr,
+			(struct sockaddr*)&recv_data_srct->addr,
 			&len);
 
 	return recved;
-
 }
 
 
