@@ -6,11 +6,11 @@
 #include <sys/socket.h>
 #include <netinet/udp.h>
 #include <netinet/ip.h>
+#include <netinet/in.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
 
 #include "network.h"
-#include "fibonacci.h"
 #include "error.h"
 
 //TODO DEBUG INCLUDES, REMOVE
@@ -68,6 +68,37 @@ void update_send(struct send_data * send_data_srct, struct host_data * host_data
 	//Set ack or number to check. 0 = ack.
 	send_data_srct->udp_header->check = num_to_check;
 
+}
+
+
+// Build api listener.
+void build_api(struct api_data * api_data_srct, int * sock_listen) {
+
+	//Create TCP socket
+	if ((*sock_listen = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
+		handle_err(ERROR_SOCKET_OPEN);
+	}
+
+	//Create master addr
+	api_data_srct->addr_listen.sin_family = AF_INET;
+	api_data_srct->addr_listen.sin_addr.s_addr = inet_addr("0.0.0.0");
+	api_data_srct->addr_listen.sin_port = htons(PORT_API);
+
+	//Set socket to not block
+	int temp = fcntl(*sock_listen, F_SETFL, fcntl(
+					 *sock_listen, F_GETFL, 0) | O_NONBLOCK);
+	if (temp == -1) handle_err(ERROR_SOCKET_NONBLOCK);
+
+	//Bind socket to listen for any addr, on PORT_API
+	if (bind(*sock_listen, (struct sockaddr *) &api_data_srct->addr_listen,
+			 sizeof(api_data_srct->addr_listen)) == -1) {
+
+		handle_err(ERROR_API_LISTEN);
+	}
+
+	if (listen(*sock_listen, 1) == -1) {
+		handle_err(ERROR_API_LISTEN);
+	}
 }
 
 
@@ -153,16 +184,60 @@ int check_outdated_ack_time(struct host_data * host, struct timeval * time) {
 }
 
 
-// Get input from api. 0 = None, 1 = Some
-int api_get_input() {
+// Accept api connection
+int api_accept_conn(struct api_data * api_data_srct, int * sock_listen,
+					int * sock_api) {
+
+	socklen_t len = (socklen_t) sizeof(api_data_srct);
+
+	*sock_api = accept(*sock_listen, (struct sockaddr *) &api_data_srct->addr_api,
+					   &len);
+
+	if (*sock_api == -1) return API_CONN_FAIL;
+	return API_CONN_SUCCESS;
+}
+
+// Get input from api. 0 = None, n = Input (number received)
+int api_get_input(int * sock_api, struct api_data * api_data_srct) {
 	
-	//Dummy
+	ssize_t ret;
+	char ** strtol_endptr = {0};
+	memset(api_data_srct->ret_buf, 0, API_GET_SIZE);
+	
+	ret = recv(*sock_api, api_data_srct->ret_buf, API_GET_SIZE, 0);
+	//If nothing to get
+	if (ret == -1) {
+		return 0;
+	//If conn shutdown
+	} else if (ret == 0) {
+		/*
+		 *	In future for reliability, what happens during shutdown
+		 *	should be changed.
+		 */
+		return 0;
+	//If something was received 
+	} else if (ret > 0) {
+		return (uint16_t) strtol(api_data_srct->ret_buf, strtol_endptr, 10);
+	}
+
 	return 0;
 }
 
-// Send output back tp api
-int api_send_output(uint16_t in_fibonacci) {
+// Send output back to api
+int api_send_output(int * sock_api, struct api_data * api_data_srct, 
+					uint16_t in_fibonacci) {
 
-	//Dummy
+	int ret;
+	char * transfer_arr[3] = {"Invalid", "False", "True"};
+	memset(api_data_srct->ret_buf, 0, API_GET_SIZE);
+	memcpy(api_data_srct->ret_buf, transfer_arr[(int) in_fibonacci],
+		   API_GET_SIZE);
+	ret = send(*sock_api, api_data_srct->ret_buf, API_GET_SIZE, 0);
+	
+	//If send failed
+	if (ret <= 0) {
+		handle_err(ERROR_API_SEND);
+	//Else if send succeeded
+	}
 	return 0;
 }

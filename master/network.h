@@ -8,13 +8,18 @@
 #include <netinet/ip.h>
 
 #define PORT 80
+#define PORT_API 25000
 #define DATAGRAM_SIZE 1024
 #define MAX_HOST 128
 #define HOST_DISCONNECT_TIMER 15 //seconds
+#define API_GET_SIZE 8
 
 #define HOST_STATE_DISCONNECTED 0
 #define HOST_STATE_PINGING 1
 #define HOST_STATE_WORK_SENT 2
+
+#define API_CONN_SUCCESS 1
+#define API_CONN_FAIL 0
 
 /*
  *	'send_data' & 'recv_data' are identical structs. Throughout development
@@ -38,6 +43,14 @@ struct host_data {
 	uint8_t state; //0 - disconnected, 1 - pinging, 2 - work sent
 };
 
+struct api_data {
+
+	struct sockaddr_in addr_listen;
+	struct sockaddr_in addr_api;
+	char ret_buf[API_GET_SIZE];
+
+};
+
 struct recv_data {
 
 	char packet_recv[DATAGRAM_SIZE];
@@ -48,20 +61,23 @@ struct recv_data {
 };
 
 
+//All the networking functions.
 void build_sock(int * sock);
 void build_send(struct send_data * send_data_srct);
-void update_send(struct send_data * send_data_srct, struct host_data * host_data_srct,
-				 uint16_t num_to_check);
+void update_send(struct send_data * send_data_srct, struct host_data * host_data_srct, uint16_t num_to_check);
+void build_api(struct api_data * api_data_srct, int * sock_listen);
 void build_recv(struct recv_data * recv_data_srct);
 
-int try_send(struct send_data * send_data_srct, struct host_data * host_data_srct,
-			 int * sock, uint16_t num_to_check);
+int try_send(struct send_data * send_data_srct, struct host_data * host_data_srct, int * sock, uint16_t num_to_check);
 int try_recv(struct recv_data * recv_data_srct, int * sock);
 
 void set_ack_time(struct host_data * host);
 int check_outdated_ack_time(struct host_data * host, struct timeval * time);
 
-int api_get_input();
-int api_send_output(uint16_t in_fibonacci);
+int api_accept_conn(struct api_data * api_data_srct, int * sock_listen,
+					 int * sock_api);
+int api_get_input(int * sock_api, struct api_data * api_data_srct);
+int api_send_output(int * sock_api, struct api_data * api_data_srct, 
+					uint16_t in_fibonacci);
 
 #endif

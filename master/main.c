@@ -11,30 +11,7 @@
 #include "util.h"
 
 
-/*
- *	Need one socket;
- *
- *	One recv address;
- *
- *  Many send addresses;
- *  	> for every new address, add entry
- *
- */
-
 int main() {
-
-	//Define array of host structs
-
-	//Build send packet
-	//Build recv packet
-	
-	//Try get msg from recv
-	//		>if got one, add address
-	//See if there are any calculations in the queue
-	//		>if no, go back to start
-	//
-	//Go through array of hosts, see if any available
-	//		>if yes, send number to host
 
 	//Setup
 	struct send_data send_data_srct;
@@ -50,12 +27,27 @@ int main() {
 	build_send(&send_data_srct);
 	queue_init(&jobs);
 
+	//Setup API
+	struct api_data api_data_srct;
+	int sock_listen;
+	int sock_api;
+	int api_ret;
+
+	build_api(&api_data_srct, &sock_listen);
+
+	//Wait for API to connect
+	while (1) {
+		api_ret = api_accept_conn(&api_data_srct, &sock_listen, &sock_api);
+		if (api_ret == API_CONN_SUCCESS) break;
+	}
 
 	//Main loop
 	while (1) {
 		
 		//Check for input from api.
-		num_buf = (uint16_t) api_get_input();
+		//num_buf = (uint16_t) api_get_input();
+		num_buf = api_get_input(&sock_api, &api_data_srct);
+
 		if (num_buf > 0) {
 			queue_push(&jobs, num_buf);
 
@@ -93,7 +85,8 @@ int main() {
 
 						//Do what?
 						set_ack_time(&hosts[i]);
-						api_send_output(recv_data_srct.udp_header->check);
+						api_send_output(&sock_api, &api_data_srct, 
+										recv_data_srct.udp_header->check);
 						hosts[i].state = 1; //set pinging
 
 					//If its an ack

@@ -11,6 +11,7 @@
 #define DATAGRAM_SIZE 1024
 #define MAX_HOST 128
 #define HOST_DISCONNECT_TIMER 15 //seconds
+#define HOST_NAME_MAX 64
 
 #define HOST_STATE_DISCONNECTED 0
 #define HOST_STATE_PINGING 1
@@ -31,7 +32,7 @@ struct send_data {
 	struct udphdr * udp_header;
 };
 
-struct master_data { //TODO 'host_data' previously
+struct master_data {
 
 	struct sockaddr_in addr;
 	char ip[16];

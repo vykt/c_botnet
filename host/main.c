@@ -14,6 +14,8 @@
 
 int main() {
 
+	char * master_ip = "172.20.0.1";
+
 	int sock;
 	ssize_t recv;
 	int tms_check;
@@ -25,7 +27,7 @@ int main() {
 
 	srand(time(0));
 
-	strcpy(master_data_srct.ip, "192.168.0.10"); //TODO temp, change
+	strcpy(master_data_srct.ip, master_ip); //TODO temp, change
 	//Generate port in the dynamic/private range. If 2 clients happen to
 	//have clashing ports there will be a problem.
 	master_data_srct.port = (rand() % 16384) + 49152;

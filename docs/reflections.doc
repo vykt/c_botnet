@@ -1,0 +1,5 @@
+> Debian Bullseye image used for every component. Debian slim probably works
+  but I don't have the time to test that.
+
+> Programs made run in non-interactive mode in a hacky way using '&'. Future
+  development would probably see the process forked to create a proper daemon.

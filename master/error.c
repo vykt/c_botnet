@@ -23,5 +23,15 @@ void handle_err(int err_id) {
 			perror("ERROR_TIME_GETTIME");
 			exit(err_id);
 			break;
+
+		case ERROR_API_LISTEN:
+			perror("ERROR_API_LISTEN");
+			exit(err_id);
+			break;
+
+		case ERROR_API_SEND:
+			perror("ERROR_API_SEND");
+			exit(err_id);
+			break;
 	}
 }
