@@ -15,19 +15,20 @@ def control_print(msg):
 
 
 #Define dispatcher constants
-HOST = "172.16.76.85" #Preset IP of master //TODO change
+HOST = "127.0.0.1" #Preset IP of master //TODO change
 PORT = 25000
+API_SEND_SIZE = 8
 
 #Connect to dispatcher
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 control_print("Attempting to establish conn with master.")
-while(True):
-    try:
-        sock.connect((HOST, PORT))
-        control_print("Establish conn with master.");
-        break
-    except:
-        continue
+#while(True):
+#    try:
+sock.connect((HOST, PORT))
+control_print("Established conn with master.");
+#        break
+#    except:
+#        continue
 
 
 app = Flask(__name__)
@@ -39,11 +40,20 @@ def exit_critical():
 def get_num():
     num_str = request.args.get("number")
     control_print("Receive num.")
-    return num_str
+    return str(num_str)
 
 def send_num(num_str):
+
+    num_str_encoded = num_str
+
+    #Add padding
+    for i in range(8 - len(num_str)):
+        num_str_encoded = num_str_encoded + '\0'
+
+    num_str_encoded = bytearray(num_str_encoded, 'utf-8')
+
     control_print("Send num.")
-    sock.send(str.encode(num_str))
+    sock.sendall(num_str_encoded)
     print("Num sent.")
 
 # -1 = bad number, 0 = good number

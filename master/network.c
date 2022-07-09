@@ -68,6 +68,9 @@ void update_send(struct send_data * send_data_srct, struct host_data * host_data
 	//Set ack or number to check. 0 = ack.
 	send_data_srct->udp_header->check = num_to_check;
 
+	//Set length field.
+	send_data_srct->udp_header->len = htons(
+			sizeof(struct udphdr) + strlen(body_content[content_index]));
 }
 
 
@@ -140,8 +143,7 @@ int try_recv(struct recv_data * recv_data_srct, int * sock) {
 
 	ssize_t recved = recvfrom(*sock,
 			recv_data_srct->packet_recv,
-			(sizeof(struct iphdr)+sizeof(struct udphdr)
-			+ strlen(recv_data_srct->packet_recv_body) + 1),
+			DATAGRAM_SIZE,
 			0,
 			&recv_data_srct->addr,
 			&len);
@@ -184,7 +186,7 @@ int check_outdated_ack_time(struct host_data * host, struct timeval * time) {
 }
 
 
-// Accept api connection TODO TODO TODO make *sock_api not block TODO TODO TODO
+// Accept api connection
 int api_accept_conn(struct api_data * api_data_srct, int * sock_listen,
 					int * sock_api) {
 
@@ -193,7 +195,14 @@ int api_accept_conn(struct api_data * api_data_srct, int * sock_listen,
 	*sock_api = accept(*sock_listen, (struct sockaddr *) &api_data_srct->addr_api,
 					   &len);
 
+	printf("Value of *sock_api: %d\n", *sock_api);
+
 	if (*sock_api == -1) return API_CONN_FAIL;
+
+	int temp = fcntl(*sock_api, F_SETFL, fcntl(
+                     *sock_api, F_GETFL, 0) | O_NONBLOCK);
+	if (temp == -1) handle_err(ERROR_SOCKET_NONBLOCK);
+
 	return API_CONN_SUCCESS;
 }
 
@@ -205,6 +214,10 @@ int api_get_input(int * sock_api, struct api_data * api_data_srct) {
 	memset(api_data_srct->ret_buf, 0, API_GET_SIZE);
 	
 	ret = recv(*sock_api, api_data_srct->ret_buf, API_GET_SIZE, 0);
+
+	//TODO remove TODO
+	printf("NETWORK.C ret: %d\n", (int) ret);
+
 	//If nothing to get
 	if (ret == -1) {
 		return 0;

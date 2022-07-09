@@ -11,8 +11,15 @@
 #define PORT_API 25000
 #define DATAGRAM_SIZE 1024
 #define MAX_HOST 128
-#define HOST_DISCONNECT_TIMER 15 //seconds
-#define API_GET_SIZE 8
+#define HOST_DISCONNECT_TIMER 15 //Seconds.
+#define API_GET_SIZE 1500
+
+/*	Note about the above API_GET_SIZE. Currently as per recommendation
+ *  it is set to 1500 - the max packet size. However, since this is a
+ *	regular socket, the buffer only stores the content of the body.
+ *	As per API validation, the max length should be 5-6 characters.
+ *	The previous value was 8, a nice round number that fits max inp size.
+ */
 
 #define HOST_STATE_DISCONNECTED 0
 #define HOST_STATE_PINGING 1

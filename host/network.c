@@ -107,8 +107,7 @@ int try_recv(struct recv_data * recv_data_srct, int * sock) {
 
 	ssize_t recved = recvfrom(*sock,
 			recv_data_srct->packet_recv,
-			(sizeof(struct iphdr)+sizeof(struct udphdr)
-			+ strlen(recv_data_srct->packet_recv_body) + 1),
+			DATAGRAM_SIZE,
 			0,
 			&recv_data_srct->addr,
 			&len);

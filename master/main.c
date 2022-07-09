@@ -16,6 +16,7 @@ void sysmsg(char * msg) {
 	printf("MASTER CONTROL: %s\n", msg);
 }
 
+
 int main() {
 
 	//Setup
@@ -46,6 +47,7 @@ int main() {
 	while (1) {
 		api_ret = api_accept_conn(&api_data_srct, &sock_listen, &sock_api);
 		if (api_ret == API_CONN_SUCCESS) break;
+		sleep(1);
 	}
 
 	sysmsg("API connected.");
@@ -53,8 +55,13 @@ int main() {
 	//Main loop
 	while (1) {
 
+		//TODO remove
+		sleep(1);
+
 		//Check for input from api.
 		num_buf = api_get_input(&sock_api, &api_data_srct);
+		printf("VALUE: num_buf=%d\n", num_buf);
+
 
 		if (num_buf > 0) {
 			queue_push(&jobs, num_buf);
