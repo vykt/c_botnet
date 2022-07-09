@@ -109,7 +109,7 @@ int try_recv(struct recv_data * recv_data_srct, int * sock) {
 			recv_data_srct->packet_recv,
 			DATAGRAM_SIZE,
 			0,
-			&recv_data_srct->addr,
+			(struct sockaddr*)&recv_data_srct->addr,
 			&len);
 
 	return recved;
