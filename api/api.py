@@ -15,7 +15,7 @@ def control_print(msg):
 
 
 #Define dispatcher constants
-HOST = "172.16.76.85" #Preset IP of master
+HOST = "172.16.76.85" #Preset IP of master //TODO change
 PORT = 25000
 
 #Connect to dispatcher
@@ -43,7 +43,8 @@ def get_num():
 
 def send_num(num_str):
     control_print("Send num.")
-    sock.sendall(num_str)
+    sock.send(str.encode(num_str))
+    print("Num sent.")
 
 # -1 = bad number, 0 = good number
 def check_num(num_str):
@@ -61,17 +62,17 @@ def check_num(num_str):
 
 class Botnet_RESTAPI(Resource):
     #On receive
-    def on_post(self):
+    def post(self):
         control_print("Recv POST.")
         num = get_num()
         #If number is garbage
-        if check_num(num_str) == -1:
+        if check_num(num) == -1:
             pass
         #Else if number is good
         else:
             send_num(num)
 
 #Start API on port 5000
-api.add_resource(Botnet_RESTAPI, '/')
+api.add_resource(Botnet_RESTAPI, '/post')
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port="5000", debug=True)

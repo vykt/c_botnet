@@ -47,7 +47,7 @@ struct api_data {
 
 	struct sockaddr_in addr_listen;
 	struct sockaddr_in addr_api;
-	char ret_buf[API_GET_SIZE];
+	char ret_buf[API_GET_SIZE]; //Also used for sending back to API.
 
 };
 

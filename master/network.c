@@ -184,7 +184,7 @@ int check_outdated_ack_time(struct host_data * host, struct timeval * time) {
 }
 
 
-// Accept api connection
+// Accept api connection TODO TODO TODO make *sock_api not block TODO TODO TODO
 int api_accept_conn(struct api_data * api_data_srct, int * sock_listen,
 					int * sock_api) {
 

@@ -51,7 +51,7 @@ void build_send(struct send_data * send_data_srct, struct master_data * master_d
 	send_data_srct->udp_header->len = htons(sizeof(struct udphdr));
 }
 
-//Update sending packet. 'num' 0 sends ack instead.
+//Update sending packet. 'num' = 0 sends ack instead.
 void update_send(struct send_data * send_data_srct, uint16_t num) {
 	
 	int content_index;

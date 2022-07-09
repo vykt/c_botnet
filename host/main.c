@@ -31,6 +31,8 @@ int main() {
 	//Generate port in the dynamic/private range. If 2 clients happen to
 	//have clashing ports there will be a problem.
 	master_data_srct.port = (rand() % 16384) + 49152;
+	printf("HOST: Port chosen - %d\n", master_data_srct.port); 
+
 
 	build_sock(&sock);
 	build_send(&send_data_srct, &master_data_srct);
@@ -45,7 +47,7 @@ int main() {
 		recv = try_recv(&recv_data_srct, &sock);
 
 		//If recv received some udp packet
-		if (recv > 0) {
+		if (recv != -1) {
 			num_check = recv_data_srct.udp_header->check;
 			num_check = fibonacci_calc(num_check);
 			update_send(&send_data_srct, num_check);

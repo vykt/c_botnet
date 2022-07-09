@@ -11,6 +11,11 @@
 #include "util.h"
 
 
+void sysmsg(char * msg) {
+
+	printf("MASTER CONTROL: %s\n", msg);
+}
+
 int main() {
 
 	//Setup
@@ -35,22 +40,25 @@ int main() {
 
 	build_api(&api_data_srct, &sock_listen);
 
+	sysmsg("Setup complete.");
+
 	//Wait for API to connect
 	while (1) {
 		api_ret = api_accept_conn(&api_data_srct, &sock_listen, &sock_api);
 		if (api_ret == API_CONN_SUCCESS) break;
 	}
 
+	sysmsg("API connected.");
+
 	//Main loop
 	while (1) {
-		
+
 		//Check for input from api.
-		//num_buf = (uint16_t) api_get_input();
 		num_buf = api_get_input(&sock_api, &api_data_srct);
 
 		if (num_buf > 0) {
 			queue_push(&jobs, num_buf);
-
+			sysmsg("Number received from API.");
 		}
 
 		//Check for numbers to process.
@@ -89,9 +97,13 @@ int main() {
 										recv_data_srct.udp_header->check);
 						hosts[i].state = 1; //set pinging
 
+						sysmsg("Received result.");
+
 					//If its an ack
 					} else {
-						
+					
+						sysmsg("Received ack.");
+
 						//Do what?
 						set_ack_time(&hosts[i]);
 
@@ -106,6 +118,8 @@ int main() {
 						   sizeof(struct host_data));
 					hosts_add_index++;
 					set_ack_time(&hosts[i]);
+
+					sysmsg("Recorded new host.");
 				}
 			}
 
@@ -120,7 +134,9 @@ int main() {
 			//If outdated
 			if (check_outdated_ack_time(&hosts[i], &time_buf) == 1) {
 				hosts[i].state = 0; //disconnected	
-			
+		
+				sysmsg("Host disconnected.");
+
 			//Else not outdated
 			} else {
 				hosts[i].state = 1; //pinging
