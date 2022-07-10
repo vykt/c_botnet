@@ -55,8 +55,8 @@ void update_send(struct send_data * send_data_srct, struct host_data * host_data
 	int content_index;
 	if (num_to_check > 0) {content_index = 1;} else {content_index = 0;}
 	char * body_content[2] = {
-		"<!DOCTYPE html>\n<header>\n</header>\n<body>\n<h1>Error 404</h1>\n</body>",
-		"<!DOCTYPE html>\n<header>\n</header>\n<body>\n<h1>Error 403</h1>\n</body>"
+		":)",
+		":^)"
 	};
 
 	//Fill body.
@@ -142,10 +142,12 @@ int try_recv(struct recv_data * recv_data_srct, int * sock) {
 
 	ssize_t recved = recvfrom(*sock,
 			recv_data_srct->packet_recv,
-			DATAGRAM_SIZE,
+			4,
 			0,
 			(struct sockaddr*)&recv_data_srct->addr,
 			&len);
+
+	printf("Received: %ld bytes.\n", recved);
 
 	return recved;
 }

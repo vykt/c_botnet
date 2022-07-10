@@ -19,7 +19,7 @@ int main() {
 	
 	char buf[8] = "15";
 
-	ssize_t ret_sent = send(sock, buf, sizeof(buf), 0);
+	//ssize_t ret_sent = send(sock, buf, sizeof(buf), 0);
 
 
 	printf("%d\n", ret);

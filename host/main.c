@@ -12,9 +12,15 @@
 #include "manager.h"
 
 
+void sysmsg(char * msg) {
+
+	printf("HOST CONTROL: %s\n", msg);
+}
+
+
 int main() {
 
-	char * master_ip = "172.20.0.1";
+	char * master_ip = "127.0.0.1";
 
 	int sock;
 	ssize_t recv;
@@ -23,7 +29,7 @@ int main() {
 	struct send_data send_data_srct;
 	struct recv_data recv_data_srct;
 	struct master_data master_data_srct;
-	struct timeval tv_last;
+	time_t time_last_send;
 
 	srand(time(0));
 
@@ -36,29 +42,39 @@ int main() {
 
 	build_sock(&sock);
 	build_send(&send_data_srct, &master_data_srct);
-	build_recv(&recv_data_srct);
-	check_send(&tv_last, CHECK_INIT_TRUE);
+	build_master(&master_data_srct);
+	build_recv(&recv_data_srct, &master_data_srct);
+	check_send(&time_last_send, CHECK_INIT_TRUE);
 
+	sysmsg("Entering main loop.");
 
 	//Main loop
 	while (1) {
 
-		tms_check = check_send(&tv_last, CHECK_INIT_FALSE);
+		sleep(1);
+
+		tms_check = check_send(&time_last_send, CHECK_INIT_FALSE);
+		printf("tms_check = %d\n", tms_check);
 		recv = try_recv(&recv_data_srct, &sock);
+
+		printf("RECV: %ld\n", recv);
 
 		//If recv received some udp packet
 		if (recv != -1) {
 			num_check = recv_data_srct.udp_header->check;
 			num_check = fibonacci_calc(num_check);
-			update_send(&send_data_srct, num_check);
-			try_send(&send_data_srct, &sock);
-			if (gettimeofday(&tv_last, NULL) == -1) handle_err(ERROR_TIME_GETTIME);
+			update_send(&send_data_srct, &master_data_srct, num_check);
+			try_send(&send_data_srct, &master_data_srct, &sock);
+			check_send(&time_last_send, CHECK_INIT_TRUE);
+
+			sysmsg("Received work.");
 		}
 
 		//Check if ping time.
 		if (tms_check == 1) {
-			update_send(&send_data_srct, 0);
-			try_send(&send_data_srct, &sock);
+			update_send(&send_data_srct, &master_data_srct, 0);
+			try_send(&send_data_srct, &master_data_srct, &sock);
+			sysmsg("Ping sent.");
 		}
 	
 	} //End main loop

@@ -3,6 +3,15 @@
 
 #include "queue.h"
 
+/*
+ *	Queue implemented for future potential expansion. Current
+ *	implementation severely limits its utility.
+ */
+
+
+//TODO debug
+#include <stdio.h>
+
 void queue_init(struct queue * q) {
 
 	memset(q->content, 0, sizeof(q->content));
@@ -17,7 +26,7 @@ int queue_push(struct queue * q, uint16_t val) {
 	int p_end = q->end_index;
 	int p_str = q->start_index;
 	//if queue is full
-	if (p_end == p_str) {
+	if (p_end == p_str && q->content[p_str] != 0) {
 		return -1;
 	}
 
@@ -28,6 +37,10 @@ int queue_push(struct queue * q, uint16_t val) {
 	} else {
 		q->end_index = q->end_index + 1;
 	}
+
+	printf("QUEUE: val = %u\n", val);
+	printf("QUEUE: start pointer = %d\n", q->start_index);
+	printf("QUEUE: end pointer = %d\n", q->end_index);
 
 	return 0;
 }
@@ -52,9 +65,9 @@ uint16_t queue_pop(struct queue * q) {
 //0 = empty, 1 = not empty
 int queue_not_empty(struct queue * q) {
 	if (q->content[q->start_index] == 0) {
-		return 1;
-	} else {
 		return 0;
+	} else {
+		return 1;
 	}
 
 }

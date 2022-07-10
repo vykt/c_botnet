@@ -48,12 +48,13 @@ def send_num(num_str):
 
     #Add padding
     for i in range(8 - len(num_str)):
-        num_str_encoded = num_str_encoded + '\0'
+       num_str_encoded = num_str_encoded + '\0'
 
     num_str_encoded = bytearray(num_str_encoded, 'utf-8')
 
     control_print("Send num.")
     sock.sendall(num_str_encoded)
+
     print("Num sent.")
 
 # -1 = bad number, 0 = good number

@@ -1,30 +1,35 @@
 #include <stddef.h>
-#include <sys/time.h>
+#include <time.h>
+//#include <sys/time.h>
 
 #include "error.h"
 
+//debug
+#include <stdio.h>
 
 // 0 = do nothing, 1 = send
-int check_send(struct timeval * tv_last_send, int init) {
+int check_send(time_t * last_send_time, int init) {
 
-	struct timeval tv_current;
+	time_t time_current;
 
-	if (init) {
-		if (gettimeofday(&tv_current, NULL) == -1) {
-			handle_err(ERROR_TIME_GETTIME);
-		}
+	if (init == 1) {
+		*last_send_time = time(NULL);
 		return 0;
 	}
 
-	if (gettimeofday(&tv_current, NULL) == -1) {
-		handle_err(ERROR_TIME_GETTIME);
-	}
+	time_current = time(NULL);
 
 	//If more than 4 to 5 seconds have elapsed
-	if (tv_last_send->tv_sec + 5 < tv_current.tv_sec) {
-		if (gettimeofday(tv_last_send, NULL) == -1) {
-			handle_err(ERROR_TIME_GETTIME);
-		}
+	
+	//TODO TODO DEBUG TODO TODO
+	
+	printf("\nnow:  %ld\nlast: %ld\n\n", time_current, *last_send_time);
+
+	// TODO END TODO
+	
+	
+	if (*last_send_time + 5 < time_current) {
+		*last_send_time = time_current;
 		return 1;
 	}
 

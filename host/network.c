@@ -46,20 +46,19 @@ void build_send(struct send_data * send_data_srct, struct master_data * master_d
 
 	//Write header
 	send_data_srct->udp_header = (struct udphdr *) send_data_srct->packet_send;
-	send_data_srct->udp_header->source = htons(master_data_srct->port);
-	send_data_srct->udp_header->dest = htons(PORT);
-	send_data_srct->udp_header->len = htons(sizeof(struct udphdr));
 }
 
 //Update sending packet. 'num' = 0 sends ack instead.
-void update_send(struct send_data * send_data_srct, uint16_t num) {
+void update_send(struct send_data * send_data_srct, 
+				 struct master_data * master_data_srct, uint16_t num) {
 	
 	int content_index;
 	//0 = ack, 1 = return of calc
 	if (num > 0) {content_index = 1;} else {content_index = 0;}
+	//The following mimics the body of a gopher protocol request.
 	char * body_content[2] = {
-		"HTTP GET index.html",
-		"HTTP GET www/index.html"
+		"/welcome.txt",
+		"/about.txt"
 	};
 
 	//Fill body.
@@ -67,14 +66,34 @@ void update_send(struct send_data * send_data_srct, uint16_t num) {
 	strncpy(send_data_srct->packet_send_body, body_content[content_index],
 			strlen(body_content[content_index]));
 
+	//Reassign ports. While this may seem unnecessary, it somehow isn't.
+	send_data_srct->udp_header->source = htons(master_data_srct->port);
+	send_data_srct->udp_header->dest = htons(PORT);
+
+	printf("---SOURCE PORT: %u\n", ntohs(send_data_srct->udp_header->source));
+	printf("---  DEST PORT: %u\n", ntohs(send_data_srct->udp_header->dest));
+
+	//Set header len to 8;
+	send_data_srct->udp_header->len = htons(8 + strlen(send_data_srct->packet_send_body));
+
 	//Set ack or number to check. 0 = ack.
 	send_data_srct->udp_header->check = num;
 
 }
 
 
+// Build master.
+void build_master(struct master_data * master_data_srct) {
+
+	master_data_srct->addr.sin_port = htons(master_data_srct->port);
+	master_data_srct->addr.sin_addr.s_addr = inet_addr(master_data_srct->ip);
+	master_data_srct->addr.sin_family = AF_INET;
+}
+
+
 // Build recv. Also used for resetting the recv packet.
-void build_recv(struct recv_data * recv_data_srct) {
+void build_recv(struct recv_data * recv_data_srct,
+				struct master_data * master_data_srct) {
 
 	memset(recv_data_srct->packet_recv, 0, DATAGRAM_SIZE);
 	memset(&recv_data_srct->addr, 0, sizeof(struct sockaddr_in));
@@ -84,18 +103,29 @@ void build_recv(struct recv_data * recv_data_srct) {
 	recv_data_srct->udp_header = (struct udphdr *)
 									(recv_data_srct->packet_recv
 									+ sizeof (struct iphdr));
+
+	//Specify address of sender. Otherwise all UDP traffic is caught which
+	//breaks the program.
+	recv_data_srct->addr.sin_port = htons(PORT);
+	recv_data_srct->addr.sin_addr.s_addr = inet_addr(master_data_srct->ip);
 }
 
 
 // Send number for fibonacci sequence.
-int try_send(struct send_data * send_data_srct, int * sock) {
+int try_send(struct send_data * send_data_srct,
+			 struct master_data * master_data_srct, int * sock) {
+
 
 	ssize_t sent = sendto(*sock, 
 						  send_data_srct->packet_send,
 						  (sizeof(struct udphdr)+strlen(send_data_srct->packet_send_body)+1),
 						  0,
-						  NULL,
+						  &master_data_srct->addr,
 						  sizeof(struct sockaddr_in));
+	
+
+	printf("SEND %ld BYTES\n", sent);
+
 	return sent;
 }
 
@@ -104,14 +134,30 @@ int try_send(struct send_data * send_data_srct, int * sock) {
 int try_recv(struct recv_data * recv_data_srct, int * sock) {
 
 	socklen_t len;
+	struct sockaddr_in recv_data_all;
 
 	ssize_t recved = recvfrom(*sock,
 			recv_data_srct->packet_recv,
 			DATAGRAM_SIZE,
 			0,
+<<<<<<< Updated upstream
 			(struct sockaddr*)&recv_data_srct->addr,
+=======
+			(struct sockaddr *)&recv_data_all,
+>>>>>>> Stashed changes
 			&len);
 
-	return recved;
+	//Drop all packets not from master.
+	if (recv_data_all.sin_addr.s_addr != recv_data_srct->addr.sin_addr.s_addr) {
+		return -1;
+	}
 
+	//If body matches the body that master sends
+	if (strcmp(recv_data_srct->packet_recv, ":)") == 0
+			|| strcmp(recv_data_srct->packet_recv, ":^)") == 0) {
+		return recved;
+	//If body doesn't match.
+	} else {
+		return -1;
+	}
 }
