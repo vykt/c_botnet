@@ -120,7 +120,7 @@ int try_send(struct send_data * send_data_srct,
 						  send_data_srct->packet_send,
 						  (sizeof(struct udphdr)+strlen(send_data_srct->packet_send_body)+1),
 						  0,
-						  &master_data_srct->addr,
+						  (const struct sockaddr *)&master_data_srct->addr,
 						  sizeof(struct sockaddr_in));
 	
 
@@ -133,19 +133,14 @@ int try_send(struct send_data * send_data_srct,
 // Recv data via UDP.
 int try_recv(struct recv_data * recv_data_srct, int * sock) {
 
-	socklen_t len;
 	struct sockaddr_in recv_data_all;
 
 	ssize_t recved = recvfrom(*sock,
 			recv_data_srct->packet_recv,
 			DATAGRAM_SIZE,
 			0,
-<<<<<<< Updated upstream
-			(struct sockaddr*)&recv_data_srct->addr,
-=======
-			(struct sockaddr *)&recv_data_all,
->>>>>>> Stashed changes
-			&len);
+			NULL,
+			NULL);
 
 	//Drop all packets not from master.
 	if (recv_data_all.sin_addr.s_addr != recv_data_srct->addr.sin_addr.s_addr) {
