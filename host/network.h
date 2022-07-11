@@ -8,7 +8,7 @@
 #include <netinet/ip.h>
 
 #define PORT 80
-#define DATAGRAM_SIZE 1024
+#define DATAGRAM_SIZE 256//1024
 #define MAX_HOST 128
 #define HOST_DISCONNECT_TIMER 15 //seconds
 #define HOST_NAME_MAX 64
@@ -36,13 +36,14 @@ struct master_data {
 
 	struct sockaddr_in addr;
 	char ip[16];
-	int port;
+	int port; //source port
 };
 
 struct recv_data {
 
 	char packet_recv[DATAGRAM_SIZE];
 	char * packet_recv_body; //stores body
+	struct iphdr * ip_header;
 	struct udphdr * udp_header; //struct version, points to same thing.
 	struct sockaddr_in addr;
 
@@ -55,8 +56,9 @@ void update_send(struct send_data * send_data_srct, struct master_data * master_
 void build_master(struct master_data * master_data_srct);
 void build_recv(struct recv_data * recv_data_srct, struct master_data * master_data_srct);
 
-int try_send(struct send_data * send_data_srct,
+ssize_t try_send(struct send_data * send_data_srct,
 			 struct master_data * master_data_srct, int * sock);
-int try_recv(struct recv_data * recv_data_srct, int * sock);
+int try_recv(struct recv_data * recv_data_srct, 
+			 struct master_data * master_data_srct, int * sock);
 
 #endif

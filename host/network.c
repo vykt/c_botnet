@@ -37,15 +37,15 @@ void build_sock(int * sock) {
 // Build sending packet.
 void build_send(struct send_data * send_data_srct, struct master_data * master_data_srct) {
 
-	//Write packet
-	send_data_srct->packet_send_body = 
-		(char *) (send_data_srct->packet_send + sizeof(struct udphdr));
-	send_data_srct->udp_header = (struct udphdr *)
-									(send_data_srct->packet_send
-									+ sizeof (struct iphdr));
-
-	//Write header
+	//Packet layout
 	send_data_srct->udp_header = (struct udphdr *) send_data_srct->packet_send;
+	send_data_srct->packet_send_body = (char *) 
+									   (send_data_srct->udp_header + 1);
+
+	//Address
+	send_data_srct->udp_header->source = htons(master_data_srct->port);
+	send_data_srct->udp_header->dest = htons(PORT);
+	
 }
 
 //Update sending packet. 'num' = 0 sends ack instead.
@@ -62,22 +62,19 @@ void update_send(struct send_data * send_data_srct,
 	};
 
 	//Fill body.
-	memset(send_data_srct->packet_send, 0, sizeof(send_data_srct->packet_send));
+	memset(send_data_srct->packet_send, 0, DATAGRAM_SIZE);
 	strncpy(send_data_srct->packet_send_body, body_content[content_index],
 			strlen(body_content[content_index]));
 
-	//Reassign ports. While this may seem unnecessary, it somehow isn't.
+	//Set ports
 	send_data_srct->udp_header->source = htons(master_data_srct->port);
 	send_data_srct->udp_header->dest = htons(PORT);
 
-	printf("---SOURCE PORT: %u\n", ntohs(send_data_srct->udp_header->source));
-	printf("---  DEST PORT: %u\n", ntohs(send_data_srct->udp_header->dest));
-
-	//Set header len to 8;
+	//Set header len
 	send_data_srct->udp_header->len = htons(8 + strlen(send_data_srct->packet_send_body));
 
 	//Set ack or number to check. 0 = ack.
-	send_data_srct->udp_header->check = num;
+	send_data_srct->udp_header->check = htons(num);
 
 }
 
@@ -97,62 +94,53 @@ void build_recv(struct recv_data * recv_data_srct,
 
 	memset(recv_data_srct->packet_recv, 0, DATAGRAM_SIZE);
 	memset(&recv_data_srct->addr, 0, sizeof(struct sockaddr_in));
-	recv_data_srct->packet_recv_body = (char *) (recv_data_srct->packet_recv
-									 + sizeof(struct iphdr)
-									 + sizeof(struct udphdr));
-	recv_data_srct->udp_header = (struct udphdr *)
-									(recv_data_srct->packet_recv
-									+ sizeof (struct iphdr));
-
-	//Specify address of sender. Otherwise all UDP traffic is caught which
-	//breaks the program.
-	recv_data_srct->addr.sin_port = htons(PORT);
-	recv_data_srct->addr.sin_addr.s_addr = inet_addr(master_data_srct->ip);
+	
+	recv_data_srct->ip_header = (struct iphdr *) recv_data_srct->packet_recv;
+	recv_data_srct->udp_header = (struct udphdr *) 
+								 (recv_data_srct->ip_header + 1);
+	recv_data_srct->packet_recv_body = (char *) 
+									   (recv_data_srct->udp_header + 1);
 }
 
 
 // Send number for fibonacci sequence.
-int try_send(struct send_data * send_data_srct,
+ssize_t try_send(struct send_data * send_data_srct,
 			 struct master_data * master_data_srct, int * sock) {
 
-
+	
 	ssize_t sent = sendto(*sock, 
 						  send_data_srct->packet_send,
 						  (sizeof(struct udphdr)+strlen(send_data_srct->packet_send_body)+1),
 						  0,
 						  (const struct sockaddr *)&master_data_srct->addr,
 						  sizeof(struct sockaddr_in));
-	
-
-	printf("SEND %ld BYTES\n", sent);
 
 	return sent;
 }
 
 
 // Recv data via UDP.
-int try_recv(struct recv_data * recv_data_srct, int * sock) {
+int try_recv(struct recv_data * recv_data_srct,
+			 struct master_data * master_data_srct, int * sock) {
 
-	struct sockaddr_in recv_data_all;
+	socklen_t len;
 
 	ssize_t recved = recvfrom(*sock,
 			recv_data_srct->packet_recv,
 			DATAGRAM_SIZE,
 			0,
-			NULL,
-			NULL);
+			(struct sockaddr *)&master_data_srct->addr,
+			&len);
 
 	//Drop all packets not from master.
-	if (recv_data_all.sin_addr.s_addr != recv_data_srct->addr.sin_addr.s_addr) {
+	if (recv_data_srct->addr.sin_addr.s_addr 
+		!= master_data_srct->addr.sin_addr.s_addr) {
+		
 		return -1;
 	}
 
-	//If body matches the body that master sends
-	if (strcmp(recv_data_srct->packet_recv, ":)") == 0
-			|| strcmp(recv_data_srct->packet_recv, ":^)") == 0) {
-		return recved;
-	//If body doesn't match.
-	} else {
-		return -1;
-	}
+	//As extra precaution, drop all packets with non-predetermined body.
+
+
+	return recved;
 }

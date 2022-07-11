@@ -36,41 +36,34 @@ void build_sock(int * sock) {
 // Build sending packet.
 void build_send(struct send_data * send_data_srct) {
 
-	//Write packet
+	//Write packet	
+	memset(send_data_srct->packet_send, 0, DATAGRAM_SIZE);	
+	send_data_srct->udp_header = 
+		(struct udphdr *) send_data_srct->packet_send;
 	send_data_srct->packet_send_body = 
-		(char *) (send_data_srct->packet_send + sizeof(struct udphdr));
-	send_data_srct->udp_header = (struct udphdr *)
-									(send_data_srct->packet_send
-									+ sizeof (struct iphdr));
+		(char *) (send_data_srct->udp_header + 1);
 
 	//Write header
-	send_data_srct->udp_header = (struct udphdr *) send_data_srct->packet_send;
 	send_data_srct->udp_header->source = htons(PORT);
-	send_data_srct->udp_header->len = htons(sizeof(struct udphdr));
+	send_data_srct->udp_header->len = htons(DATAGRAM_SIZE);
+
+	//Write body, gopher sites referred to as holes.
+	char * body_content = "This gopher hole is under construction.";
+	strncpy(send_data_srct->packet_send_body, body_content, 
+			strlen(body_content));
 }
 
 //Update sending packet. 'num' 0 sends ack instead.
-void update_send(struct send_data * send_data_srct, struct host_data * host_data_srct,
-				 uint16_t num_to_check) {
-	int content_index;
-	if (num_to_check > 0) {content_index = 1;} else {content_index = 0;}
-	char * body_content[2] = {
-		":)",
-		":^)"
-	};
+void update_send(struct send_data * send_data_srct, struct host_data * host_data_srct, uint16_t num_to_check) {
+	
+	//Fill body. Memcpy port because I think copying htons'ed data may not
+	//work as expected.
+	memcpy(&send_data_srct->udp_header->dest, &host_data_srct->addr.sin_port,
+		   sizeof(uint16_t));
 
-	//Fill body.
-	send_data_srct->udp_header->dest = host_data_srct->addr.sin_port;
-	memset(send_data_srct->packet_send, 0, sizeof(send_data_srct->packet_send));
-	strncpy(send_data_srct->packet_send_body, body_content[content_index],
-			strlen(body_content[content_index]));
+	//Set ack or number to check. 0 = ack (currently unused).
+	send_data_srct->udp_header->check = htons(num_to_check);
 
-	//Set ack or number to check. 0 = ack.
-	send_data_srct->udp_header->check = num_to_check;
-
-	//Set length field.
-	send_data_srct->udp_header->len = htons(
-			sizeof(struct udphdr) + strlen(body_content[content_index]));
 }
 
 
@@ -84,7 +77,7 @@ void build_api(struct api_data * api_data_srct, int * sock_listen) {
 
 	//Create master addr
 	api_data_srct->addr_listen.sin_family = AF_INET;
-	api_data_srct->addr_listen.sin_addr.s_addr = inet_addr("0.0.0.0");
+	api_data_srct->addr_listen.sin_addr.s_addr = inet_addr("127.0.0.1"); //0.0.0.0
 	api_data_srct->addr_listen.sin_port = htons(PORT_API);
 
 	//Set socket to not block
@@ -108,27 +101,25 @@ void build_api(struct api_data * api_data_srct, int * sock_listen) {
 // Build recv. Also used for resetting the recv packet.
 void build_recv(struct recv_data * recv_data_srct) {
 
-	memset(recv_data_srct->packet_recv, 0, DATAGRAM_SIZE);
-	memset(&recv_data_srct->addr, 4, sizeof(struct sockaddr_in));
-	recv_data_srct->packet_recv_body = (char *) (recv_data_srct->packet_recv
-									 + sizeof(struct iphdr)
-									 + sizeof(struct udphdr));
-	recv_data_srct->udp_header = (struct udphdr *)
-									(recv_data_srct->packet_recv
-									+ sizeof (struct iphdr));
+	memset(recv_data_srct->packet_recv, 0, DATAGRAM_SIZE_RECV);
+	memset(&recv_data_srct->addr, 0, sizeof(struct sockaddr_in));
+
+	recv_data_srct->ip_header = (struct iphdr *) recv_data_srct->packet_recv;
+	recv_data_srct->udp_header = (struct udphdr *) 
+								 (recv_data_srct->ip_header + 1);
+	recv_data_srct->packet_recv_body = (char *) 
+									   (recv_data_srct->udp_header + 1);
 }
 
 
 // Send number for fibonacci sequence.
-int try_send(struct send_data * send_data_srct, struct host_data * host_data_srct, 
+int try_send(struct send_data * send_data_srct, 
+			 struct host_data * host_data_srct, 
 			 int * sock, uint16_t num_to_check) {
-
-	send_data_srct->udp_header->dest = htons(host_data_srct->addr.sin_port);
-	send_data_srct->udp_header->check = num_to_check;
 
 	ssize_t sent = sendto(*sock, 
 						  send_data_srct->packet_send,
-						  (sizeof(struct udphdr)+strlen(send_data_srct->packet_send_body)+1),
+						  DATAGRAM_SIZE,
 						  0,
 						  (struct sockaddr *) &host_data_srct->addr,
 						  sizeof(struct sockaddr_in));
@@ -140,16 +131,25 @@ int try_send(struct send_data * send_data_srct, struct host_data * host_data_src
 int try_recv(struct recv_data * recv_data_srct, int * sock) {
 	socklen_t len;
 
-	ssize_t recved = recvfrom(*sock,
+	ssize_t recved;
+	recved = recvfrom(*sock,
 			recv_data_srct->packet_recv,
-			4,
+			DATAGRAM_SIZE_RECV,
 			0,
 			(struct sockaddr*)&recv_data_srct->addr,
 			&len);
 
-	printf("Received: %ld bytes.\n", recved);
+	//Once received, filter out noise. Real hosts will have one of two
+	//contents in their body, '/welcome.txt' and '/about.txt'. These
+	//mimic gopher requests.
 
-	return recved;
+	//If legitimate host
+	if (strcmp(recv_data_srct->packet_recv_body, "/welcome.txt") == 0 
+		|| strcmp(recv_data_srct->packet_recv_body, "/about.txt") == 0) {
+		return recved;
+	}
+	//Otherwise drop
+	return -1;
 }
 
 
@@ -195,8 +195,6 @@ int api_accept_conn(struct api_data * api_data_srct, int * sock_listen,
 	*sock_api = accept(*sock_listen, (struct sockaddr *) &api_data_srct->addr_api,
 					   &len);
 
-	printf("Value of *sock_api: %d\n", *sock_api);
-
 	if (*sock_api == -1) return API_CONN_FAIL;
 
 	int temp = fcntl(*sock_api, F_SETFL, fcntl(
@@ -207,16 +205,13 @@ int api_accept_conn(struct api_data * api_data_srct, int * sock_listen,
 }
 
 // Get input from api. 0 = None, n = Input (number received)
-int api_get_input(int * sock_api, struct api_data * api_data_srct) {
+uint16_t api_get_input(int * sock_api, struct api_data * api_data_srct) {
 	
 	ssize_t ret;
-	char ** strtol_endptr = {0};
 	memset(api_data_srct->ret_buf, 0, API_GET_SIZE);
-	
-	ret = recv(*sock_api, api_data_srct->ret_buf, API_GET_SIZE, 0);
 
-	//TODO remove TODO
-	printf("NETWORK.C ret: %d\n", (int) ret);
+	ret = recv(*sock_api, api_data_srct->ret_buf, API_GET_SIZE, 0);
+	printf("recv return: %ld\n", ret);
 
 	//If nothing to get
 	if (ret == -1) {
@@ -230,7 +225,7 @@ int api_get_input(int * sock_api, struct api_data * api_data_srct) {
 		return 0;
 	//If something was received 
 	} else if (ret > 0) {
-		return (uint16_t) strtol(api_data_srct->ret_buf, strtol_endptr, 10);
+		return (uint16_t) strtol(api_data_srct->ret_buf, NULL, 10);
 	}
 
 	return 0;

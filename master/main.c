@@ -11,12 +11,6 @@
 #include "util.h"
 
 
-void sysmsg(char * msg) {
-
-	printf("MASTER CONTROL: %s\n", msg);
-}
-
-
 int main() {
 
 	//Setup
@@ -30,6 +24,7 @@ int main() {
 	int hosts_add_index = 0;
 	uint16_t num_buf;
 
+	build_sock(&sock);
 	build_send(&send_data_srct);
 	queue_init(&jobs);
 
@@ -38,10 +33,10 @@ int main() {
 	int sock_listen;
 	int sock_api;
 	int api_ret;
+	int addr_match;
 
 	build_api(&api_data_srct, &sock_listen);
 
-	sysmsg("Setup complete.");
 
 	//Wait for API to connect //WORKS
 	while (1) {
@@ -49,37 +44,41 @@ int main() {
 		if (api_ret == API_CONN_SUCCESS) break;
 		sleep(1);
 	}
-
-	sysmsg("API connected.");
+	printf("API: Connected.\n\n");
 
 	//Main loop
 	while (1) {
 
 		//TODO remove
-		sleep(1);
+		sleep(3);
+		printf(" --- NEW CYCLE --- \n");
 
-		//Check for input from api. //WORKS
+		printf("\n - API RECEIVING:\n");
+		//Check for input from api.
 		num_buf = api_get_input(&sock_api, &api_data_srct);
+		printf("number from API: %u\n", num_buf);
 
-		if (num_buf > 0) { //WORKS
+		if (num_buf > 0) {
 			queue_push(&jobs, num_buf);
-			sysmsg("Number received from API.");
 		}
 
-		//Check for numbers to process. //WORKS
+		//Check for numbers to process.
+		printf("\n - QUEUE:\n");
 		if (queue_not_empty(&jobs)) {
-
-			sysmsg("Jobs left to do.");
+			printf("queue not empty: true\n");
 
 			//For every connected host
 			for (int i = 0; i < hosts_add_index; i++) {
+				printf("checking host %d.\n", i);
 				if (hosts[i].state != 1) continue; //if unavailable, skip
+				printf("host %d is pinging.", i);
 				//Send to first available host
 				num_buf = queue_pop(&jobs);
+				printf("popped number for processing: %u\n", num_buf);
 				update_send(&send_data_srct, &hosts[i], num_buf);
 				try_send(&send_data_srct, &hosts[i], &sock, num_buf);
+				printf("setting host %d as working.\n", i);
 				hosts[i].state = 2; //working
-				sysmsg("Sent work to host.");
 			}
 
 		}
@@ -87,17 +86,31 @@ int main() {
 		//Check for pings
 		build_recv(&recv_data_srct);
 
+
+		printf("\n - HOSTS RECEIVING\n");
 		//If something received
-		if (try_recv(&recv_data_srct, &sock) != -1) {
+		addr_match = 0;
+		int recved;
+		recved = try_recv(&recv_data_srct, &sock);
+		if (recved != -1) { //If received
+		
+			printf("received bytes: %d\n", recved);
 
 			//Check all known addresses
-			for (int i = 0; i < hosts_add_index; i++) {
+			for (int i = 0; i < hosts_add_index; i++) { //For all known addrs
 				
+				printf("checking known host, id: %d\n", i);
+
 				//If address matches
 				if (addr_equal(&recv_data_srct.addr, &hosts[i].addr)) {
-					
+				
+					printf("host matched, id: %d\n", i);
+
 					//If its not an ack (aka result)
-					if (recv_data_srct.udp_header->check > 0) {
+					if (ntohs(recv_data_srct.udp_header->check) > 0) {
+
+						printf("received value was true/false: %u\n", 
+							   ntohs(recv_data_srct.udp_header->check));
 
 						//Do what?
 						set_ack_time(&hosts[i]);
@@ -105,52 +118,63 @@ int main() {
 										recv_data_srct.udp_header->check);
 						hosts[i].state = 1; //set pinging
 
-						sysmsg("Received result.");
 
 					//If its an ack
 					} else {
-					
-						sysmsg("Received ack.");
+				
+						printf("received value was ack: %u\n", 
+							   ntohs(recv_data_srct.udp_header->check));
 
 						//Do what?
 						set_ack_time(&hosts[i]);
-
 					}
+
+					addr_match = 1;	
+				} //End if addr matches
+
+			} //End for all known addrs
+
+			//If address doesn't match
+			if (addr_match == 0) {
+
+				printf("\nno address matched.\n");
 				
-				//If address doesn't match
-				} else {
+				//Do what?
+				//-record new addr //TODO TODO TODO TODO
+				
+				memcpy(&hosts[hosts_add_index].addr, &recv_data_srct.addr,
+					   sizeof(struct sockaddr_in));
+				set_ack_time(&hosts[hosts_add_index]);
+				hosts[hosts_add_index].state = 1; //pinging
+				printf("recorded new address as index: %d\n", hosts_add_index);
+				hosts_add_index++;
 
-					//Do what?
-					//-record new addr
-					memcpy(&hosts[hosts_add_index], &recv_data_srct.addr,
-						   sizeof(struct host_data));
-					hosts_add_index++;
-					set_ack_time(&hosts[i]);
-
-					sysmsg("Recorded new host.");
-				}
 			}
+		} //End if received
 
-		//If nothing received
-		} else {
-			//do nothing
-
-		}
+		printf("\n - OUTDATED CONNS\n");
 		//Check outdated connections
 		if (gettimeofday(&time_buf, NULL) != 0) handle_err(ERROR_TIME_GETTIME);
-		for (int i = 0; i < hosts_add_index; i++) {
-			//If outdated
-			if (check_outdated_ack_time(&hosts[i], &time_buf) == 1) {
-				hosts[i].state = 0; //disconnected	
 		
-				sysmsg("Host disconnected.");
+		for (int i = 0; i < hosts_add_index; i++) {
+			printf("checking if host is outdated, id: %d\n", i);
+			//If outdated
+			if (check_outdated_ack_time(&hosts[i], &time_buf) == 1
+				&& hosts[i].state != 0) {
+				
+				printf("host deemed outdated (disconnected), id: %d\n", i);
+				hosts[i].state = 0; //disconnected
 
 			//Else not outdated
-			} else {
+			} else if (check_outdated_ack_time(&hosts[i], &time_buf) == 0
+					   && hosts[i].state == 0) {
+
+				printf("host deemed to return to connection, id: %d\n", i);
 				hosts[i].state = 1; //pinging
 			}
+			printf("\n");
 		}
-		
+		printf("\n --- END CYCLE --- \n\n\n");	
 	} //End main loop
 
 
