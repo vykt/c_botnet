@@ -15,7 +15,7 @@
 
 int main() {
 
-	char * master_ip = "127.0.0.1";
+	char * master_ip = "172.20.0.2";
 
 	int sock;
 	ssize_t sent;
@@ -45,7 +45,7 @@ int main() {
 	//Main loop
 	while (1) {
 
-		//sleep(1);
+		sleep(1);
 
 		printf(" --- NEW HOST CYCLE --- \n");
 

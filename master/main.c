@@ -10,6 +10,10 @@
 #include "queue.h"
 #include "util.h"
 
+//DEBUG
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 int main() {
 
@@ -51,7 +55,7 @@ int main() {
 	//Main loop
 	while (1) {
 
-		//sleep(1);
+		sleep(1);
 
 		//TODO remove
 		printf(" --- NEW CYCLE --- \n");
@@ -78,10 +82,15 @@ int main() {
 				
 				hosts_available = 1; //true
 				printf("host %d is pinging.\n", i);
+
 				//Send to first available host
 				num_buf = queue_pop(&jobs);
 				printf("popped number for processing: %u\n", num_buf);
 				update_send(&send_data_srct, &hosts[i], num_buf);
+
+				printf("SENDING NUMBER %u TO ADDRESS %s\n", num_buf,
+					   inet_ntoa(hosts[i].addr.sin_addr));
+
 				sent = try_send(&send_data_srct, &hosts[i], &sock, num_buf);
 				printf("sent bytes: %ld\n", sent);
 				printf("setting host %d as working.\n", i);

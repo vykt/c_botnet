@@ -3,7 +3,7 @@ import socket
 
 app = Flask(__name__)
 
-HOST = "127.0.0.1"
+HOST = "172.20.0.2" #IP of master
 PORT = 26969
 API_SIZE = 256
 
@@ -36,6 +36,12 @@ def check_num(num_str):
 @app.route("/post", methods=["POST"])
 def send_to_c():
 
+    print('''----------------------------------\n\n\n
+
+        RECEIVED DATA, SENDING
+
+''');
+
     #Don't know if global is necessary. Don't want to find out either after
     #having it not work for 25hrs+.
     global sock
@@ -49,6 +55,7 @@ def send_to_c():
     #Else valid input
     else:
         sock.sendall(bytes(num_str, "utf-8"))
+        print("API SEND DATA, WAITING TO RECEIVE NOW")
         ret = sock.recv(API_SIZE)
         ret_decoded = ret.decode("utf-8")
         ret_formatted = ret_decoded.replace('\u0000', '')
@@ -65,4 +72,4 @@ def send_to_c():
 
 
 if __name__ == '__main__':
-    app.run(host="127.0.0.1", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=5000, debug=False)

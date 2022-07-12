@@ -1,3 +1,63 @@
-version:  '3'
+# HOST:     container: debian-host:bullseye
+# MASTER:   container: debian-master:bullseye
+# API:      container: debian-api:bullseye
+
+version:  '3.9'
 
 services:
+  host-1:
+    image: debian-host:bullseye
+    restart: unless-stopped
+    container_name: botnet_host-1
+    networks:
+      botnet:
+        ipv4_address: 172.20.0.4
+
+#
+# Including a second host causes docker to error out due to a 'broken pipe'
+# after the first 2-3 commands are sent via the API. This doesn't occur when 
+# running locally. My guess is it has something to do with a very shallow buffer
+# overflowing, maybe?
+#
+
+
+#  host-2:
+#    image: debian-host:bullseye
+#    restart: unless-stopped
+#    container_name: botnet_host-2
+#    networks:
+#      botnet:
+#        ipv4_address: 172.20.0.5
+
+  master:
+    image: debian-master:bullseye
+    restart: unless-stopped
+    container_name: botnet_master
+    expose:
+      - 80
+      - 26969
+    networks:
+      botnet:
+        ipv4_address: 172.20.0.2
+
+  api:
+    image: debian-api:bullseye
+    restart: unless-stopped
+    container_name: botnet_api
+    expose:
+      - 5000
+    ports:
+      - 5000:5000
+    networks:
+      botnet:
+        ipv4_address: 172.20.0.3
+    depends_on:
+      master:
+        condition: service_started
+
+networks:
+  botnet:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
