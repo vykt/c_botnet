@@ -38,10 +38,6 @@ int queue_push(struct queue * q, uint16_t val) {
 		q->end_index = q->end_index + 1;
 	}
 
-	printf("QUEUE: val = %u\n", val);
-	printf("QUEUE: start pointer = %d\n", q->start_index);
-	printf("QUEUE: end pointer = %d\n", q->end_index);
-
 	return 0;
 }
 

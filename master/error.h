@@ -7,6 +7,7 @@
 #define ERROR_TIME_GETTIME 3
 #define ERROR_API_LISTEN 4
 #define ERROR_API_SEND 5
+#define ERROR_SOCKET_REUSE 6
 
 void handle_err(int err_id);
 

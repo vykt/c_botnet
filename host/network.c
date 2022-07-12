@@ -107,6 +107,7 @@ void build_recv(struct recv_data * recv_data_srct,
 ssize_t try_send(struct send_data * send_data_srct,
 			 struct master_data * master_data_srct, int * sock) {
 
+	printf(" ------------ SENDING CHECK: %u\n", ntohs(send_data_srct->udp_header->check));
 	
 	ssize_t sent = sendto(*sock, 
 						  send_data_srct->packet_send,
@@ -129,18 +130,30 @@ int try_recv(struct recv_data * recv_data_srct,
 			recv_data_srct->packet_recv,
 			DATAGRAM_SIZE,
 			0,
-			(struct sockaddr *)&master_data_srct->addr,
+			(struct sockaddr *)&recv_data_srct->addr,
 			&len);
 
+	printf("RECEIVED %ld\n", recved);
+	
+	char * addr_recv = inet_ntoa(recv_data_srct->addr.sin_addr);
+	char * addr_master = inet_ntoa(master_data_srct->addr.sin_addr);
+
+	//printf("RECV: %s - MASTER: %s\n", addr_recv, addr_master);
+	printf("FULL RECV: %s\n", recv_data_srct->packet_recv);
+
 	//Drop all packets not from master.
-	if (recv_data_srct->addr.sin_addr.s_addr 
-		!= master_data_srct->addr.sin_addr.s_addr) {
-		
+	if (strcmp(addr_recv, addr_master) != 0) {
+		printf("!!! DID NOT PASS ADDRESS VIBE CHECK !!!\n");
 		return -1;
 	}
 
-	//As extra precaution, drop all packets with non-predetermined body.
+	//Also check body of message, just in case.
+	printf("BODY: %s\n", recv_data_srct->packet_recv_body);
+	if (strcmp(recv_data_srct->packet_recv_body, "This gopher hole is under construction.") != 0) {
+		printf("!!! DID NOT PASS BODY VIBE CHECK !!!\n");
+		return -1;
+	}
 
-
+	printf("VIBE CHECK PASSED\n");
 	return recved;
 }

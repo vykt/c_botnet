@@ -77,13 +77,20 @@ void build_api(struct api_data * api_data_srct, int * sock_listen) {
 
 	//Create master addr
 	api_data_srct->addr_listen.sin_family = AF_INET;
-	api_data_srct->addr_listen.sin_addr.s_addr = inet_addr("127.0.0.1"); //0.0.0.0
+	api_data_srct->addr_listen.sin_addr.s_addr = inet_addr("0.0.0.0"); //0.0.0.0
 	api_data_srct->addr_listen.sin_port = htons(PORT_API);
 
 	//Set socket to not block
 	int temp = fcntl(*sock_listen, F_SETFL, fcntl(
 					 *sock_listen, F_GETFL, 0) | O_NONBLOCK);
 	if (temp == -1) handle_err(ERROR_SOCKET_NONBLOCK);
+	
+	//Set sock to reuse
+	int reuse = 1;
+	if (setsockopt(*sock_listen, SOL_SOCKET, SO_REUSEADDR, 
+				   (const char *) &reuse, sizeof(reuse)) < 0) {
+		handle_err(ERROR_SOCKET_REUSE);
+	}
 
 	//Bind socket to listen for any addr, on PORT_API
 	if (bind(*sock_listen, (struct sockaddr *) &api_data_srct->addr_listen,
@@ -139,12 +146,19 @@ int try_recv(struct recv_data * recv_data_srct, int * sock) {
 			(struct sockaddr*)&recv_data_srct->addr,
 			&len);
 
+	printf("RECEIVED: %ld\n", recved);
+	printf("----------- RECEIVED CHECK: %u\n", ntohs(recv_data_srct->udp_header->check));
+
 	//Once received, filter out noise. Real hosts will have one of two
 	//contents in their body, '/welcome.txt' and '/about.txt'. These
 	//mimic gopher requests.
 
+	printf("LEGIT COMPARE (r): %s, sizeof: %ld\n", recv_data_srct->packet_recv_body, strlen(recv_data_srct->packet_recv_body));
+	printf("LEGIT COMPARE (o): %s, sizeof: %ld\n", "/welcome.txt", strlen("/welcome.txt"));
+	printf("LEGIT COMPARE (o): %s, sizeof: %ld\n", "/about.txt", strlen("/about.txt"));
+
 	//If legitimate host
-	if (strcmp(recv_data_srct->packet_recv_body, "/welcome.txt") == 0 
+	if (strcmp(recv_data_srct->packet_recv_body, "/welcome.txt") == 0
 		|| strcmp(recv_data_srct->packet_recv_body, "/about.txt") == 0) {
 		return recved;
 	}
@@ -208,10 +222,12 @@ int api_accept_conn(struct api_data * api_data_srct, int * sock_listen,
 uint16_t api_get_input(int * sock_api, struct api_data * api_data_srct) {
 	
 	ssize_t ret;
+
 	memset(api_data_srct->ret_buf, 0, API_GET_SIZE);
 
 	ret = recv(*sock_api, api_data_srct->ret_buf, API_GET_SIZE, 0);
-	printf("recv return: %ld\n", ret);
+	//perror("Recvfrom error");
+	//if (ret > 0) printf("recv return: %ld\n", ret);
 
 	//If nothing to get
 	if (ret == -1) {
@@ -236,10 +252,21 @@ int api_send_output(int * sock_api, struct api_data * api_data_srct,
 					uint16_t in_fibonacci) {
 
 	int ret;
-	char * transfer_arr[3] = {"Invalid", "False", "True"};
-	memset(api_data_srct->ret_buf, 0, API_GET_SIZE);
-	memcpy(api_data_srct->ret_buf, transfer_arr[(int) in_fibonacci],
-		   API_GET_SIZE);
+	char * transfer_arr[4] = {"No hosts", "True", "False"};
+	
+	printf("ABOUT TO SEGFAULT\n");
+	memset(api_data_srct->ret_buf, 0, sizeof(api_data_srct->ret_buf));
+	printf("ABOUT TO SEGFAULT AGAIN, PROBABLY\n");
+
+	printf("in_fibonacci: %u\n", in_fibonacci);
+	printf("in_fibonacci (int): %d\n", (int) in_fibonacci);
+	printf("transfer_arr[in_fibonacci]: %s\n", transfer_arr[in_fibonacci]);
+	printf("transfer_arr[(int) in_fibonacci]: %s\n", transfer_arr[(int) in_fibonacci]);
+	strncpy(api_data_srct->ret_buf, transfer_arr[(int) in_fibonacci],
+		   strlen(transfer_arr[(int) in_fibonacci ]));
+
+	printf("GOT PAST SEGFAULTS, SOMEHOW\n");
+	printf("-------- SENDING TO API: %s\n", api_data_srct->ret_buf);
 	ret = send(*sock_api, api_data_srct->ret_buf, API_GET_SIZE, 0);
 	
 	//If send failed

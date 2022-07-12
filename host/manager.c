@@ -22,8 +22,6 @@ int check_send(time_t * last_send_time, int init) {
 	//If more than 4 to 5 seconds have elapsed
 	
 	//TODO TODO DEBUG TODO TODO
-	
-	printf("\nnow:  %ld\nlast: %ld\n\n", time_current, *last_send_time);
 
 	// TODO END TODO
 	

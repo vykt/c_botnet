@@ -45,11 +45,11 @@ int main() {
 	//Main loop
 	while (1) {
 
-		sleep(2);
+		//sleep(1);
 
 		printf(" --- NEW HOST CYCLE --- \n");
 
-		printf("\n - RECEIVE\n");
+		printf(" - RECEIVE\n");
 		tms_check = check_send(&time_last_send, CHECK_INIT_FALSE);	
 		printf("time to send: %d\n", tms_check);
 		
@@ -58,17 +58,17 @@ int main() {
 
 		//If recv received some udp packet
 		if (recv != -1) {
-			num_check = recv_data_srct.udp_header->check;
+			num_check = ntohs(recv_data_srct.udp_header->check);
 			printf("num to check: %u\n", num_check);
 			num_check = fibonacci_calc(num_check);
 			printf("fibonacci check (true/false): %u\n", num_check);
 			update_send(&send_data_srct, &master_data_srct, num_check);
 			sent = try_send(&send_data_srct, &master_data_srct, &sock);
-			printf("sent bytes: %ld\n", sent);
+			printf("sent calculation bytes: %ld\n", sent);
 
 		}
 
-		printf("\n - SEND\n");
+		printf(" - SEND\n");
 		//Check if ping time.
 		if (tms_check == 1) {
 			printf("asked to send.\n");
@@ -77,7 +77,7 @@ int main() {
 			printf("sent bytes: %ld\n", sent);
 		}
 
-		printf("\n --- END HOST CYCLE --- \n\n\n");
+		printf(" --- END HOST CYCLE --- \n\n\n");
 	} //End main loop
 
 	close(sock);

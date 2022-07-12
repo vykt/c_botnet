@@ -33,5 +33,10 @@ void handle_err(int err_id) {
 			perror("ERROR_API_SEND");
 			exit(err_id);
 			break;
+		
+		case ERROR_SOCKET_REUSE:
+			perror("ERROR_SOCKET_REUSE");
+			exit(err_id);
+			break;
 	}
 }

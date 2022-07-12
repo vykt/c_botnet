@@ -8,12 +8,12 @@
 #include <netinet/ip.h>
 
 #define PORT 80
-#define PORT_API 25000
+#define PORT_API 26969
 #define DATAGRAM_SIZE 256//1024
 #define DATAGRAM_SIZE_RECV 276//1044 //IP header takes extra 20 bytes.
 #define MAX_HOST 128
 #define HOST_DISCONNECT_TIMER 15 //Seconds.
-#define API_GET_SIZE 8
+#define API_GET_SIZE 256
 
 /*	Note about the above API_GET_SIZE. Currently as per recommendation
  *  it is set to 1500 - the max packet size. However, since this is a
@@ -55,6 +55,7 @@ struct api_data {
 
 	struct sockaddr_in addr_listen;
 	struct sockaddr_in addr_api;
+	//char * ret_buf;
 	char ret_buf[API_GET_SIZE]; //Also used for sending back to API.
 
 };
