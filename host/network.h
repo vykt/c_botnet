@@ -56,9 +56,7 @@ void update_send(struct send_data * send_data_srct, struct master_data * master_
 void build_master(struct master_data * master_data_srct);
 void build_recv(struct recv_data * recv_data_srct, struct master_data * master_data_srct);
 
-ssize_t try_send(struct send_data * send_data_srct,
-			 struct master_data * master_data_srct, int * sock);
-int try_recv(struct recv_data * recv_data_srct, 
-			 struct master_data * master_data_srct, int * sock);
+ssize_t try_send(struct send_data * send_data_srct, struct master_data * master_data_srct, int * sock);
+int try_recv(struct recv_data * recv_data_srct, struct master_data * master_data_srct, int * sock);
 
 #endif

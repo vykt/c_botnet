@@ -14,9 +14,6 @@
 #include "fibonacci.h"
 #include "error.h"
 
-//TODO DEBUG INCLUDES, REMOVE
-#include <stdio.h>
-
 
 // Build socket
 void build_sock(int * sock) {
@@ -71,7 +68,8 @@ void update_send(struct send_data * send_data_srct,
 	send_data_srct->udp_header->dest = htons(PORT);
 
 	//Set header len
-	send_data_srct->udp_header->len = htons(8 + strlen(send_data_srct->packet_send_body));
+	send_data_srct->udp_header->len = 
+		htons(8 + strlen(send_data_srct->packet_send_body));
 
 	//Set ack or number to check. 0 = ack.
 	send_data_srct->udp_header->check = htons(num);
@@ -106,12 +104,11 @@ void build_recv(struct recv_data * recv_data_srct,
 // Send number for fibonacci sequence.
 ssize_t try_send(struct send_data * send_data_srct,
 			 struct master_data * master_data_srct, int * sock) {
-
-	printf(" ------------ SENDING CHECK: %u\n", ntohs(send_data_srct->udp_header->check));
 	
 	ssize_t sent = sendto(*sock, 
 						  send_data_srct->packet_send,
-						  (sizeof(struct udphdr)+strlen(send_data_srct->packet_send_body)+1),
+						  (sizeof(struct udphdr)
+						   + strlen(send_data_srct->packet_send_body) + 1),
 						  0,
 						  (const struct sockaddr *)&master_data_srct->addr,
 						  sizeof(struct sockaddr_in));
@@ -124,7 +121,7 @@ ssize_t try_send(struct send_data * send_data_srct,
 int try_recv(struct recv_data * recv_data_srct,
 			 struct master_data * master_data_srct, int * sock) {
 
-	socklen_t len;
+	socklen_t len = sizeof(recv_data_srct->addr);
 
 	ssize_t recved = recvfrom(*sock,
 			recv_data_srct->packet_recv,
@@ -132,28 +129,34 @@ int try_recv(struct recv_data * recv_data_srct,
 			0,
 			(struct sockaddr *)&recv_data_srct->addr,
 			&len);
-
-	printf("RECEIVED %ld\n", recved);
 	
 	char * addr_recv = inet_ntoa(recv_data_srct->addr.sin_addr);
 	char * addr_master = inet_ntoa(master_data_srct->addr.sin_addr);
 
-	//printf("RECV: %s - MASTER: %s\n", addr_recv, addr_master);
-	printf("FULL RECV: %s\n", recv_data_srct->packet_recv);
 
 	//Drop all packets not from master.
 	if (strcmp(addr_recv, addr_master) != 0) {
-		printf("!!! DID NOT PASS ADDRESS VIBE CHECK !!!\n");
 		return -1;
 	}
 
 	//Also check body of message, just in case.
-	printf("BODY: %s\n", recv_data_srct->packet_recv_body);
-	if (strcmp(recv_data_srct->packet_recv_body, "This gopher hole is under construction.") != 0) {
-		printf("!!! DID NOT PASS BODY VIBE CHECK !!!\n");
+	if (strcmp(recv_data_srct->packet_recv_body, 
+			   "This gopher hole is under construction.") != 0) {
 		return -1;
 	}
 
-	printf("VIBE CHECK PASSED\n");
+	//Drop all packets from master addressed to other hosts
+	
+	/*
+	 *	This here is only useful during testing, and to prove that docker
+	 *	is broken. By checking destination ports, 2 hosts on the same
+	 *	machine can act as completely separate entities.
+	 */
+
+	if ((uint16_t) master_data_srct->port 
+			!= ntohs(recv_data_srct->udp_header->dest)) {
+		return -1;
+	}
+
 	return recved;
 }

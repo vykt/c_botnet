@@ -14,10 +14,10 @@ services:
         ipv4_address: 172.20.0.4
 
 #
-# Including a second host causes docker to error out due to a 'broken pipe'
-# after the first 2-3 commands are sent via the API. This doesn't occur when 
-# running locally. My guess is it has something to do with a very shallow buffer
-# overflowing, maybe?
+# host-2 is currently blocked out because prior to me fixing a bug in addressing,
+# it didn't work using docker. I think I've since fixed the bug but Debian appear
+# to have banned me from their repos for spamming docker build on their servers.
+# So currently I can't test if it works. Feel free to do so yourself though!
 #
 
 

@@ -9,18 +9,11 @@
 
 #define PORT 80
 #define PORT_API 26969
-#define DATAGRAM_SIZE 256//1024
-#define DATAGRAM_SIZE_RECV 276//1044 //IP header takes extra 20 bytes.
+#define DATAGRAM_SIZE 256
+#define DATAGRAM_SIZE_RECV 276 //IP header takes extra 20 bytes.
 #define MAX_HOST 128
 #define HOST_DISCONNECT_TIMER 15 //Seconds.
 #define API_GET_SIZE 256
-
-/*	Note about the above API_GET_SIZE. Currently as per recommendation
- *  it is set to 1500 - the max packet size. However, since this is a
- *	regular socket, the buffer only stores the content of the body.
- *	As per API validation, the max length should be 5-6 characters.
- *	The previous value was 8, a nice round number that fits max inp size.
- */
 
 #define HOST_STATE_DISCONNECTED 0
 #define HOST_STATE_PINGING 1
@@ -28,12 +21,6 @@
 
 #define API_CONN_SUCCESS 1
 #define API_CONN_FAIL 0
-
-/*
- *	'send_data' & 'recv_data' are identical structs. Throughout development
- *	this has not been the case the majority of the time. In the future,
- *	they can be combined into a single struct.
- */
 
 
 //Conn struct, written by build_conn().
@@ -47,6 +34,7 @@ struct send_data {
 struct host_data {
 
 	struct sockaddr_in addr;
+	uint16_t port;
 	struct timeval ack_time;	
 	uint8_t state; //0 - disconnected, 1 - pinging, 2 - work sent
 };
@@ -87,10 +75,8 @@ int try_recv(struct recv_data * recv_data_srct, int * sock);
 void set_ack_time(struct host_data * host);
 int check_outdated_ack_time(struct host_data * host, struct timeval * time);
 
-int api_accept_conn(struct api_data * api_data_srct, int * sock_listen,
-					 int * sock_api);
+int api_accept_conn(struct api_data * api_data_srct, int * sock_listen, int * sock_api);
 uint16_t api_get_input(int * sock_api, struct api_data * api_data_srct);
-int api_send_output(int * sock_api, struct api_data * api_data_srct, 
-					uint16_t in_fibonacci);
+int api_send_output(int * sock_api, struct api_data * api_data_srct, uint16_t in_fibonacci);
 
 #endif

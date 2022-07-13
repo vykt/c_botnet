@@ -1,5 +1,7 @@
-IP addresses:
+Docker IP addresses:
 
-Master:	172.20.0.1
-API:	172.20.0.2
-Hosts	172.20.<rand>.<rand>
+	Master:	172.20.0.2
+	API:	172.20.0.3
+	Hosts	172.20.0.{4,5}
+
+

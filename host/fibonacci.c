@@ -17,7 +17,6 @@ uint16_t fibonacci_calc(uint16_t target) {
 	for (uint16_t i = 0; i < 65535; ++i) {
 		nums[(i + 2) % 3] = nums[i % 3] + nums[(i + 1) % 3];
 		buf = nums[(i + 2) % 3];
-		printf("buf = %u, target = %u\n", buf, target);
 		if (buf == target) {
 			return FIBONACCI_TRUE;
 		}
