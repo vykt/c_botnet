@@ -3,7 +3,7 @@
 
 ### ABOUT:
 
-A cluser/botnet written in C without the use of external libraries. Both the dispatcher and host code runs on POSIX compliant environments that support BSD sockets. A REST API is provided to communicate with the dispatcher, written in Python & Flask. The project is configured to run inside docker by default, but a script is provided to convert the sources to run on localhost for testing.
+A cluser/botnet written in C without the use of external libraries. Both the dispatcher and host code runs on POSIX compliant environments that support BSD sockets. A REST API is provided to communicate with the dispatcher, written in Python & Flask. The project is configured to run inside docker by default, but sources can be edited to run locally by changing the address at the start of the main files.
 
 Hosts are programmed to calculate whether a number passed to them appears in the fibonacci sequence. Communication between the dispatcher and the client is disguised to appear as an unsuccessful series of Gopher protocol requests. The real communication occurs inside the checksum field of the UDP header.
 
@@ -47,7 +47,7 @@ Data is passed to the API using the 'number' parameter on the 'post' page:
 The API will return a dictionary containing 3 fields:
 ```
 "number"		- The number originally passed to the API.
-"in_fibonacci"	- Whether the number is in the fibonacci sequence, or error.
+"in_fibonacci"		- Whether the number is in the fibonacci sequence, or error.
 "reason"		- None, or in case of error, reason for error.
 ```
 

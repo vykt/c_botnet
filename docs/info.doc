@@ -1,7 +1,33 @@
-Docker IP addresses:
+DOCKER IP ADDRESSES:
 
 	Master:	172.20.0.2
 	API:	172.20.0.3
 	Hosts	172.20.0.{4,5}
 
 
+PROGRAM PORTS:
+
+	Master:
+		80		- Hosts
+		26969	- API
+
+	API:
+		5000	- External requests
+		<rand>	- Master
+
+	Hosts:
+		<rand>	- Master
+
+
+UDP PACKETS:
+
+	These are the bodies of Gopher requests/responses sent by hosts and
+	dispatcher. Traffic can be quickly understood by observing just
+	the body of each message.
+
+	Hosts:
+		"/welcome.txt"	- Pinging dispatcher.
+		"/about.txt"	- Returning result to dispatcher.
+
+	Dispatcher:
+		"This gopher hole is under construction."	- Sending work.
